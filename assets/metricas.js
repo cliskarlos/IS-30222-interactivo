@@ -12,7 +12,7 @@
    (si tu panel es https://is30222.goatcounter.com, el código es 'is30222').
    Con CODE vacío no se envía nada. */
 (function () {
-  var CODE = '';
+  var CODE = 'is30222';
   var seen = {}, t0 = null;
   var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '');
 
