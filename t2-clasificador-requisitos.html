@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clasificador de requisitos · IS 30222</title>
+<meta name="description" content="Clasificar requisitos y convertir requisitos vagos en requisitos verificables.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: una columna con dos pestañas de ejercicio (clasificar y reescribir); cada requisito se presenta como una ficha numerada de SRS */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:700px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+.intro,.muted{color:var(--muted);margin:0;max-width:62ch}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-size:15px;padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--plum);border-bottom-color:var(--plum);font-weight:500}
+.panel{display:flex;flex-direction:column;gap:16px}
+.progress{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--plum);width:0;transition:width .25s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.req{display:flex;gap:12px;align-items:baseline;border-left:3px solid var(--plum);padding:4px 0 4px 12px}
+.req .id{font-family:var(--mono);font-size:13px;color:var(--plum);font-weight:500;flex:none}
+.req p{margin:0;font-size:17px;text-wrap:pretty}
+.dom{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.q{font-size:14px;color:var(--muted);margin:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.opts.stack{grid-template-columns:1fr}
+.opt{font:inherit;font-size:15px;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.opt small{font-size:12px;color:var(--muted)}
+.opt:hover:not(:disabled){border-color:var(--plum)}
+.opt:disabled{cursor:default}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.opt.ko{background:var(--ko-bg);border-color:var(--ko);color:var(--ko)}
+.opt.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.opt.ok small,.opt.ko small,.opt.warn small{color:inherit;opacity:.85}
+.fb{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.verdict{font-weight:700}
+.verdict.ok{color:var(--ok)} .verdict.ko{color:var(--ko)} .verdict.warn{color:var(--warn)}
+.exp{margin:0}
+mark{background:var(--warn-bg);color:var(--warn);padding:0 3px;border-radius:3px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+button:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.big{font-size:44px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums;line-height:1}
+.fails{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fails li{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.fails b{color:var(--plum);font-weight:500}
+details.legend{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+details.legend summary{cursor:pointer;font-weight:500}
+details.legend dl{margin:12px 0 0;display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:14px}
+details.legend dt{font-weight:500}
+details.legend dd{margin:0;color:var(--muted)}
+@media (max-width:480px){details.legend dl{grid-template-columns:1fr}details.legend dd{margin-bottom:6px}}
+.foot{font-size:13px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Tema 2 · Requisitos</div>
+    <h1>Clasificador de requisitos</h1>
+    <p class="intro">Dos destrezas básicas del SRS: saber qué tipo de requisito tienes delante y convertir un requisito vago en uno que se pueda verificar.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Ejercicio">
+    <button role="tab" id="tab-cla" aria-controls="p-cla" aria-selected="true">Clasificar</button>
+    <button role="tab" id="tab-rew" aria-controls="p-rew" aria-selected="false">Hacerlo verificable</button>
+  </div>
+  <section class="panel" id="p-cla" role="tabpanel" aria-labelledby="tab-cla"></section>
+  <section class="panel" id="p-rew" role="tabpanel" aria-labelledby="tab-rew" hidden></section>
+
+  <details class="legend">
+    <summary>Recordatorio de tipos</summary>
+    <dl>
+      <dt>Funcional</dt><dd>Qué hace el sistema: un servicio o una función concreta.</dd>
+      <dt>NF de producto</dt><dd>Cómo debe comportarse el producto: rendimiento, usabilidad, fiabilidad, seguridad.</dd>
+      <dt>NF organizativo</dt><dd>Viene de la organización que lo desarrolla o lo usa: estándares de proceso, lenguaje o plataforma impuestos.</dd>
+      <dt>NF externo</dt><dd>Viene de fuera del sistema y de la organización: leyes, normativa, ética.</dd>
+      <dt>Del dominio</dt><dd>Reglas propias del sector o de la actividad. Por su origen; pueden ser funcionales o no.</dd>
+    </dl>
+  </details>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+const TABS=['cla','rew'];
+function showTab(t){ TABS.forEach(x=>{document.getElementById('tab-'+x).setAttribute('aria-selected',x===t);document.getElementById('p-'+x).hidden=x!==t;}); }
+TABS.forEach(t=>document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t)));
+{ const h=(location.hash||'').slice(1); if(TABS.includes(h)) showTab(h); }
+
+const CLA_OPTS=[['F','Funcional','qué hace'],['P','NF de producto','cómo se comporta'],['O','NF organizativo','impuesto por la organización'],['E','NF externo','leyes y normativa'],['D','Del dominio','reglas del sector']];
+const CLA=[
+ {dom:'Teleconsulta rural',ans:'F',txt:'El médico podrá consultar el historial de un paciente antes de la cita.',exp:'Describe un servicio que ofrece el sistema a un actor: funcional.'},
+ {dom:'Teleconsulta rural',ans:'P',txt:'La videollamada se establecerá en menos de 5 segundos en el 95 % de los intentos.',exp:'Cualidad del producto (rendimiento), y además verificable porque da cifra y porcentaje.'},
+ {dom:'Teleconsulta rural',ans:'E',txt:'Los datos de salud se tratarán conforme al Reglamento General de Protección de Datos.',exp:'La exigencia viene de una ley, fuera del sistema y de la organización: no funcional externo.'},
+ {dom:'Teleconsulta rural',ans:'O',txt:'El sistema se desarrollará en Java y se desplegará en los servidores de la comarca.',exp:'Restricción impuesta por la organización (tecnología y plataforma): no funcional organizativo.'},
+ {dom:'Puntos de recarga',ans:'F',txt:'El sistema calculará el importe de cada recarga según los kWh consumidos y la franja horaria.',exp:'Una función con lógica de negocio. Que sea un cálculo no lo convierte en no funcional.'},
+ {dom:'Torneos de videojuegos',ans:'D',alt:['F'],txt:'Una partida de eliminatoria no puede terminar en empate: si hay empate, se juega una prórroga.',exp:'Es una regla de la propia actividad (cómo funcionan las eliminatorias). Por su origen es del dominio; como pide un comportamiento al sistema, también se acepta como funcional.'},
+ {dom:'Puntos de recarga',ans:'P',txt:'Un usuario nuevo podrá hacer su primera reserva sin ayuda en menos de 3 minutos.',exp:'Usabilidad medible: no funcional de producto.'},
+ {dom:'Puntos de recarga',ans:'P',txt:'La app estará disponible el 99,5 % del tiempo entre las 8 y las 22 h.',exp:'Fiabilidad o disponibilidad del producto: no funcional de producto.'},
+ {dom:'Obrador con venta online',ans:'O',txt:'La documentación del proyecto seguirá la plantilla de la norma ISO/IEC/IEEE 29148.',exp:'Un estándar de proceso que impone la organización que desarrolla: organizativo. No dice nada del comportamiento del sistema.'},
+ {dom:'Obrador con venta online',ans:'F',txt:'El personal del obrador podrá marcar un encargo como listo para recoger.',exp:'Función ofrecida a un actor: funcional.'},
+ {dom:'Obrador con venta online',ans:'E',txt:'Las facturas cumplirán el reglamento de facturación de la Agencia Tributaria.',exp:'Normativa externa: no funcional externo.'},
+ {dom:'Sensores agrícolas',ans:'P',txt:'Las contraseñas se guardarán cifradas y la sesión caducará tras 15 minutos sin actividad.',exp:'Seguridad del producto: no funcional de producto. No confundir con externo: no lo exige una ley concreta, es una cualidad decidida para el producto.'},
+ {dom:'Sensores agrícolas',ans:'F',txt:'El sistema avisará al agricultor cuando la humedad de una parcela baje del umbral fijado.',exp:'Funcional: un servicio concreto con un disparador claro.'},
+ {dom:'App de patrimonio',ans:'D',alt:['F'],txt:'La distancia entre dos puntos de interés de una ruta se mide siguiendo los caminos, no en línea recta.',exp:'Convención del dominio del senderismo y las rutas. Por su origen, del dominio; también aceptable como funcional.'}
+];
+
+const REW=[
+ {dom:'Puntos de recarga',orig:'El sistema será <mark>rápido</mark>.',
+  opts:[['ok','Las búsquedas de puntos de recarga responderán en menos de 2 s en el 95 % de los casos, con 1.000 usuarios simultáneos.'],
+        ['vago','El sistema será muy rápido y eficiente en todas sus operaciones.'],
+        ['sol','Se usará una caché en memoria para acelerar las consultas.']]},
+ {dom:'Puntos de recarga',orig:'La app será <mark>fácil de usar</mark>.',
+  opts:[['vago','La interfaz será intuitiva, moderna y amigable.'],
+        ['ok','Un usuario nuevo completará su primera reserva sin ayuda en menos de 3 minutos en 9 de cada 10 pruebas con usuarios.'],
+        ['sol','La app incluirá un tutorial inicial de diez pantallas.']]},
+ {dom:'Teleconsulta rural',orig:'El sistema será <mark>seguro</mark>.',
+  opts:[['vago','El sistema tendrá un nivel de seguridad alto, adecuado a los datos que maneja.'],
+        ['sol','Se contratará una auditoría de seguridad externa cada año.'],
+        ['ok','Tras 5 intentos fallidos de acceso, la cuenta se bloqueará 15 minutos y se avisará al titular por correo.']]},
+ {dom:'Torneos de videojuegos',orig:'El sistema debe soportar <mark>muchos usuarios</mark>.',
+  opts:[['ok','El sistema admitirá 500 usuarios concurrentes con un tiempo de respuesta inferior a 3 s en las páginas de clasificación.'],
+        ['sol','El sistema se desplegará como microservicios para poder escalar.'],
+        ['vago','El sistema debe ser escalable y soportar picos de uso.']]},
+ {dom:'Obrador con venta online',orig:'El sistema avisará al usuario <mark>en caso de error</mark>.',
+  opts:[['vago','El sistema mostrará mensajes de error claros y adecuados.'],
+        ['ok','Si la pasarela rechaza un pago, el sistema mostrará el motivo del rechazo y ofrecerá reintentar o cambiar de tarjeta, sin perder el encargo.'],
+        ['sol','Todos los errores se registrarán en un fichero de log.']]}
+];
+const REW_X={
+ ok:'Correcto. Es verificable: dice qué se mide, cuánto y en qué condiciones, de modo que se puede diseñar una prueba que lo confirme o lo refute.',
+ vago:'Sigue siendo vago: cambia unas palabras por otras igual de imposibles de comprobar. ¿Cómo diseñarías una prueba que dijera si se cumple?',
+ sol:'Esto no es un requisito, es una decisión de diseño o de gestión: dice cómo se va a hacer, no qué se necesita. Ata la solución antes de tiempo y tampoco garantiza nada medible.'
+};
+
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+function makeQuiz(root, items, cfg){
+  let order=[], idx=0, score=0, fails=[], answered=false, retrying=false;
+  root.innerHTML=`<div><div class="progress"><span class="pos"></span><span class="sc"></span></div><div class="bar" aria-hidden="true"><i></i></div></div><section class="card" aria-live="polite"></section>`;
+  const card=root.querySelector('.card');
+  function prog(){ const done=Math.min(idx+(answered?1:0),order.length);
+    root.querySelector('.pos').textContent= idx<order.length?`Requisito ${idx+1} de ${order.length}`:`${order.length} de ${order.length}`;
+    root.querySelector('.sc').textContent=`Aciertos: ${score}`;
+    root.querySelector('.bar i').style.width=(100*done/order.length)+'%'; }
+  function start(list){ retrying=!!list; order=shuffle((list||items).slice()); idx=0; score=0; fails=[]; render(); }
+  function render(){ answered=false; if(idx>=order.length) return summary(); const it=order[idx];
+    const opts=cfg.opts(it);
+    card.innerHTML=`<div class="dom">${it.dom}</div>
+      <div class="req"><span class="id">${cfg.id(idx)}</span><p>${cfg.text(it)}</p></div>
+      <p class="q">${cfg.q}</p>
+      <div class="opts${cfg.stack?' stack':''}">${opts.map(([k,n,s])=>`<button type="button" class="opt" data-k="${k}">${n}${s?`<small>${s}</small>`:''}</button>`).join('')}</div>
+      <div class="fb" hidden></div>`;
+    card.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.k))); prog(); if(window.isMark) isMark(); }
+  function answer(k){ if(answered) return; answered=true; const it=order[idx];
+    const r=cfg.grade(it,k); if(r.v!=='ko') score++; else fails.push({it,k});
+    { const iid=String(cfg.idx(it)+1).padStart(2,'0'), okk=r.v!=='ko';
+      if(retrying){ if(window.isRetry) isRetry('t2',cfg.name,iid,okk); }
+      else if(window.isMetric) isMetric('t2',cfg.name,iid,okk,okk?null:cfg.choiceOf(it,k)); }
+    card.querySelectorAll('.opt').forEach(b=>{ b.disabled=true;
+      if(b.dataset.k===cfg.right(it)) b.classList.add('ok'); else if(b.dataset.k===k) b.classList.add(r.v==='warn'?'warn':'ko'); });
+    const fb=card.querySelector('.fb'); const last=idx===order.length-1;
+    fb.innerHTML=`<div class="verdict ${r.v}">${r.t}</div><p class="exp">${r.x}</p><div class="row"><button type="button" class="btn">${last?'Ver resultado':'Siguiente'}</button></div>`;
+    fb.hidden=false; prog(); if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t2',cfg.name,String(cfg.idx(it)+1).padStart(2,'0')));
+    const nx=fb.querySelector('.btn'); nx.addEventListener('click',()=>{idx++;render();}); nx.focus({preventScroll:true}); }
+  function summary(){ prog(); if(!retrying && window.isEnd) isEnd('t2',cfg.name,score/order.length);
+    card.innerHTML=`<div><span class="big">${score}</span><span class="muted"> de ${order.length}</span></div>
+      ${fails.length?`<ul class="fails">${fails.map(f=>`<li>${cfg.text(f.it)}<br>${cfg.failTxt(f)}</li>`).join('')}</ul>`:'<p class="exp">Sin fallos. Repite para verlos en otro orden.</p>'}
+      <div class="row">${fails.length?'<button type="button" class="btn" data-a="retry">Repetir los fallos</button>':''}<button type="button" class="btn ${fails.length?'ghost':''}" data-a="again">Empezar de nuevo</button></div>`;
+    card.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click',()=>b.dataset.a==='retry'?start(fails.map(f=>f.it)):start())); }
+  start();
+}
+const CN=Object.fromEntries(CLA_OPTS.map(o=>[o[0],o[1]]));
+makeQuiz(document.getElementById('p-cla'),CLA,{
+  name:'clasificar', idx:it=>CLA.indexOf(it), choiceOf:(it,k)=>k, q:'¿De qué tipo es?', id:i=>'R'+String(i+1).padStart(2,'0'),
+  text:it=>it.txt, opts:()=>CLA_OPTS, right:it=>it.ans,
+  grade:(it,k)=> k===it.ans?{v:'ok',t:'Correcto',x:it.exp}
+               : (it.alt||[]).includes(k)?{v:'warn',t:`Aceptable. Lo más preciso: ${CN[it.ans]}`,x:it.exp}
+               : {v:'ko',t:`No. Es ${CN[it.ans]}`,x:it.exp},
+  failTxt:f=>`Elegiste ${CN[f.k]}; era <b>${CN[f.it.ans]}</b>.`
+});
+makeQuiz(document.getElementById('p-rew'),REW.map(r=>({...r,mix:shuffle(r.opts.map((o,i)=>[String(i),o[1],'',o[0]]))})),{
+  name:'reescribir', idx:it=>REW.findIndex(r=>r.orig===it.orig), choiceOf:(it,k)=>it.mix.find(m=>m[0]===k)[3], q:'¿Cuál es la mejor reescritura?', id:i=>'RNF-'+String(i+1).padStart(2,'0'), stack:true,
+  text:it=>it.orig, opts:it=>it.mix.map(m=>[m[0],m[1]]), right:it=>it.mix.find(m=>m[3]==='ok')[0],
+  grade:(it,k)=>{ const kind=it.mix.find(m=>m[0]===k)[3];
+    return kind==='ok'?{v:'ok',t:'Correcto',x:REW_X.ok}:{v:'ko',t:kind==='sol'?'Eso es una solución, no un requisito':'Sigue siendo vago',x:REW_X[kind]+' La opción correcta es la que dice qué se mide, cuánto y en qué condiciones.'}; },
+  failTxt:f=>{ const kind=f.it.mix.find(m=>m[0]===f.k)[3]; return kind==='sol'?'Elegiste una decisión de diseño en lugar de un requisito.':'Elegiste una versión que seguía siendo vaga.'; }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taller de diagramas de estados · IS 30222</title>
+<meta name="description" content="Simular una máquina de estados y encontrar errores en un diagrama de estados.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: una columna con dos pestañas; el diagrama manda y los controles van debajo, como en un banco de pruebas */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:15px;margin:0;font-weight:500}
+.intro,.muted{color:var(--muted);margin:0;max-width:62ch}
+code,.mono{font-family:var(--mono)}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-size:15px;padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--plum);border-bottom-color:var(--plum);font-weight:500}
+.panel{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.canvas{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px;overflow-x:auto}
+.canvas svg{display:block;width:100%;max-width:480px;min-width:320px;height:auto;margin:0 auto}
+svg text{font-family:var(--font)}
+
+.status{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pill{font-size:14px;font-weight:500;padding:4px 12px;border-radius:999px;background:var(--plum);color:var(--on-plum)}
+.pill.final{background:var(--fg);color:var(--bg)}
+.events{display:flex;flex-wrap:wrap;gap:8px}
+.ev{font:inherit;font-family:var(--mono);font-size:14px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.ev:hover:not(:disabled){border-color:var(--plum)}
+.ev:disabled{opacity:.45;cursor:default}
+.guard{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.guard input{accent-color:var(--plum);width:180px}
+.guard output{font-family:var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
+.msg{font-size:15px;padding:10px 12px;border-radius:10px;background:var(--tint)}
+.msg.ko{background:var(--warn-bg);color:var(--warn)}
+.log{margin:0;padding:0;list-style:none;font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px;max-height:160px;overflow:auto}
+.log li b{color:var(--plum);font-weight:500}
+.retos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.retos li{display:flex;gap:10px;align-items:baseline}
+.mk{font-family:var(--mono);font-weight:500;width:1.2em;flex:none;color:var(--muted)}
+.retos li.done .mk{color:var(--ok)}
+.retos li.done span:last-child{color:var(--muted);text-decoration:line-through}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.hit{cursor:pointer}
+.fbl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fbl li{font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.fbl li.ok{border-color:var(--ok);background:var(--ok-bg)}
+.fbl li.ko{border-color:var(--ko);background:var(--ko-bg)}
+.fbl li.miss{border-style:dashed;border-color:var(--warn);background:var(--warn-bg)}
+.fbl b{font-weight:500}
+.score{font-weight:700;font-size:16px}
+.foot{font-size:13px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Tema 3 · Modelado dinámico</div>
+    <h1>Taller de diagramas de estados</h1>
+    <p class="intro">Un diagrama de estados es una máquina que se puede ejecutar. En la primera pestaña lanzas eventos y ves cómo responde el objeto; en la segunda buscas los errores de un diagrama mal hecho.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Modo">
+    <button role="tab" id="tab-sim" aria-controls="p-sim" aria-selected="true">Simular</button>
+    <button role="tab" id="tab-err" aria-controls="p-err" aria-selected="false">Encontrar errores</button>
+  </div>
+
+  <!-- ============ SIMULAR ============ -->
+  <section class="panel" id="p-sim" role="tabpanel" aria-labelledby="tab-sim">
+    <div class="card">
+      <h2>Reserva de un punto de recarga</h2>
+      <p class="muted">Ciclo de vida de una reserva en una red de puntos de recarga de vehículo eléctrico. El estado resaltado es el actual.</p>
+      <div class="canvas"><svg id="simsvg" viewBox="0 0 400 372" role="img" aria-label="Diagrama de estados de la reserva"></svg></div>
+      <div class="status"><span class="muted">Estado actual</span><span class="pill" id="cur"></span></div>
+      <div class="guard"><label for="mins">Faltan para la hora reservada</label><input type="range" id="mins" min="0" max="120" step="5" value="60"><output id="minsout" for="mins">60 min</output></div>
+      <div>
+        <h3 style="margin-bottom:8px">Lanza un evento</h3>
+        <div class="events" id="events"></div>
+      </div>
+      <div class="msg" id="simmsg">Lanza un evento para empezar. Los eventos que no tienen transición desde el estado actual se ignoran.</div>
+      <div class="row"><button type="button" class="btn ghost" id="restart">Nueva reserva</button></div>
+      <ul class="log" id="log" aria-label="Traza"></ul>
+    </div>
+    <div class="card">
+      <h3>Retos</h3>
+      <ul class="retos" id="retos"></ul>
+    </div>
+  </section>
+
+  <!-- ============ ERRORES ============ -->
+  <section class="panel" id="p-err" role="tabpanel" aria-labelledby="tab-err" hidden>
+    <div class="card">
+      <h2>Programa de riego de una parcela</h2>
+      <p class="muted">Este diagrama tiene <strong>4 errores</strong> de modelado. Toca los estados o transiciones que creas que están mal (se marcan en color) y pulsa Corregir.</p>
+      <div class="canvas"><svg id="errsvg" viewBox="0 0 400 320" role="img" aria-label="Diagrama de estados del riego con errores"></svg></div>
+      <div class="row">
+        <button type="button" class="btn" id="checkErr">Corregir</button>
+        <button type="button" class="btn ghost" id="resetErr">Borrar marcas</button>
+      </div>
+      <div id="errfb" class="panel" hidden></div>
+    </div>
+  </section>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+/* ---------- Geometría común ---------- */
+const W=110, H=34;
+function clip(c,tx,ty){ const dx=tx-c[0], dy=ty-c[1]; if(!dx&&!dy) return [c[0],c[1]];
+  const sx=dx?(W/2)/Math.abs(dx):Infinity, sy=dy?(H/2)/Math.abs(dy):Infinity, s=Math.min(sx,sy); return [c[0]+dx*s,c[1]+dy*s]; }
+function geo(a,b,off){ const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy);
+  const n=[-dy/L,dx/L], C=[mx+n[0]*(off||0), my+n[1]*(off||0)];
+  const s=clip(a,C[0],C[1]), e=clip(b,C[0],C[1]);
+  const m=[.25*s[0]+.5*C[0]+.25*e[0], .25*s[1]+.5*C[1]+.25*e[1]];
+  return {s,e,C,n,m}; }
+const f1=x=>x.toFixed(1);
+function arrow(e,C,color){ const dx=e[0]-C[0], dy=e[1]-C[1], l=Math.hypot(dx,dy), d=[dx/l,dy/l], n=[-d[1],d[0]];
+  const a=[e[0]-d[0]*9, e[1]-d[1]*9];
+  return `<polygon points="${f1(e[0])},${f1(e[1])} ${f1(a[0]+n[0]*4.5)},${f1(a[1]+n[1]*4.5)} ${f1(a[0]-n[0]*4.5)},${f1(a[1]-n[1]*4.5)}" fill="${color}"/>`; }
+function label(txt,x,y,color,weight){ return `<text x="${f1(x)}" y="${f1(y)}" text-anchor="middle" font-size="11" ${weight?`font-weight="${weight}"`:''} fill="${color}" paint-order="stroke" stroke="var(--bg)" stroke-width="4" stroke-linejoin="round" class="mono">${txt}</text>`; }
+function stateBox(name,c,fill,stroke,sw){ return `<rect x="${c[0]-W/2}" y="${c[1]-H/2}" width="${W}" height="${H}" rx="11" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+  <text x="${c[0]}" y="${c[1]+4.5}" text-anchor="middle" font-size="13" font-weight="500" fill="var(--fg)">${name}</text>`; }
+function initial(c, from){ const e=clip(c,from[0],from[1]); return `<circle cx="${from[0]}" cy="${from[1]}" r="6" fill="var(--fg)"/><line x1="${from[0]}" y1="${from[1]+6}" x2="${f1(e[0])}" y2="${f1(e[1]-1)}" stroke="var(--muted)" stroke-width="1.4"/>${arrow([e[0],e[1]],[from[0],from[1]],'var(--muted)')}`; }
+function finalMark(c){ const x=c[0]+W/2, bx=x+28; return `<line x1="${x}" y1="${c[1]}" x2="${bx-17}" y2="${c[1]}" stroke="var(--muted)" stroke-width="1.4"/>${arrow([bx-9,c[1]],[x,c[1]],'var(--muted)')}<circle cx="${bx}" cy="${c[1]}" r="8" fill="none" stroke="var(--fg)" stroke-width="1.4"/><circle cx="${bx}" cy="${c[1]}" r="4.5" fill="var(--fg)"/>`; }
+
+/* ---------- Pestañas ---------- */
+const TABS=['sim','err'];
+function showTab(t){ TABS.forEach(x=>{document.getElementById('tab-'+x).setAttribute('aria-selected',x===t);document.getElementById('p-'+x).hidden=x!==t;}); }
+TABS.forEach(t=>document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t)));
+if(location.hash==='#errores') showTab('err');
+
+/* ---------- SIMULAR ---------- */
+const S={Pendiente:[80,60],Confirmada:[80,160],EnCurso:[80,260],Suspendida:[190,340],Finalizada:[300,260],Cancelada:[300,60],Caducada:[300,160]};
+const SN={EnCurso:'En curso'};
+const FINALS=['Finalizada','Cancelada','Caducada'];
+const T=[
+ {id:'t1',from:'Pendiente',to:'Confirmada',ev:['pagoOK'],lab:'pagoOK',ldx:-38},
+ {id:'t2',from:'Pendiente',to:'Cancelada',ev:['cancelar'],lab:'cancelar',ldy:-9},
+ {id:'t3',from:'Confirmada',to:'Cancelada',ev:['cancelar'],guard:()=>mins>30,lab:'cancelar [faltan > 30 min]'},
+ {id:'t4',from:'Confirmada',to:'Caducada',ev:['tras15'],lab:'tras(15 min)',ldy:-9},
+ {id:'t5',from:'Confirmada',to:'EnCurso',ev:['conectar'],lab:'conectar',ldx:-38},
+ {id:'t6',from:'EnCurso',to:'Finalizada',ev:['desconectar','bateriaLlena'],lab:'desconectar | bateríaLlena',ldy:-22},
+ {id:'t7',from:'EnCurso',to:'Suspendida',ev:['falloRed'],lab:'falloRed',off:14,ldx:-16},
+ {id:'t8',from:'Suspendida',to:'EnCurso',ev:['redOK'],lab:'redOK',off:14,ldx:10},
+ {id:'t9',from:'Suspendida',to:'Finalizada',ev:['desconectar'],lab:'desconectar',ldx:14}
+];
+const EVENTS=[['pagoOK','pagoOK'],['cancelar','cancelar'],['conectar','conectar'],['desconectar','desconectar'],['bateriaLlena','bateríaLlena'],['falloRed','falloRed'],['redOK','redOK'],['tras15','pasan 15 min']];
+const RETOS=[
+ ['r1','Completa una recarga sin incidencias.'],
+ ['r2','Completa una recarga que sufra un corte de red.'],
+ ['r3','Cancela una reserva que ya estaba pagada.'],
+ ['r4','Intenta cancelar una reserva pagada cuando faltan 30 min o menos. ¿Qué pasa?'],
+ ['r5','Deja que una reserva caduque.']
+];
+let cur='Pendiente', last=null, visited=new Set(['Pendiente']), mins=60, done=new Set();
+function drawSim(){
+  let s='';
+  s+=initial(S.Pendiente,[80,14]);
+  T.forEach(t=>{ const g=geo(S[t.from],S[t.to],t.off); const hot=last===t.id;
+    const col=hot?'var(--plum)':'var(--muted)';
+    s+=`<path d="M${f1(g.s[0])},${f1(g.s[1])} Q${f1(g.C[0])},${f1(g.C[1])} ${f1(g.e[0])},${f1(g.e[1])}" fill="none" stroke="${col}" stroke-width="${hot?2.4:1.4}"/>`+arrow(g.e,g.C,col);
+    const push=t.off?14*Math.sign(t.off):0;
+    s+=label(t.lab, g.m[0]+g.n[0]*push+(t.ldx||0), g.m[1]+g.n[1]*push+(t.ldy||0)+4, hot?'var(--plum)':'var(--fg)', hot?500:0);
+  });
+  FINALS.forEach(f=>s+=finalMark(S[f]));
+  Object.entries(S).forEach(([k,c])=>{ const on=k===cur; s+=stateBox(SN[k]||k,c,on?'var(--tint)':'var(--surface)',on?'var(--plum)':'var(--fg)',on?2.6:1.4); });
+  document.getElementById('simsvg').innerHTML=s;
+  const pill=document.getElementById('cur'); pill.textContent=SN[cur]||cur; pill.className='pill'+(FINALS.includes(cur)?' final':'');
+  document.querySelectorAll('.ev').forEach(b=>b.disabled=FINALS.includes(cur));
+  document.getElementById('retos').innerHTML=RETOS.map(([k,t])=>`<li class="${done.has(k)?'done':''}"><span class="mk">${done.has(k)?'✓':'○'}</span><span>${t}</span></li>`).join('');
+}
+function say(t,ko){ const m=document.getElementById('simmsg'); m.textContent=t; m.className='msg'+(ko?' ko':''); }
+function fire(ev){
+  const evName=EVENTS.find(e=>e[0]===ev)[1];
+  const t=T.find(x=>x.from===cur&&x.ev.includes(ev));
+  if(!t){ last=null; say(`Desde ${SN[cur]||cur} no sale ninguna transición con el evento ${evName}. El evento se ignora y el estado no cambia.`,true); drawSim(); return; }
+  if(t.guard && !t.guard()){ last=null; if(t.id==='t3') done.add('r4');
+    say(`La guarda [faltan > 30 min] es falsa (faltan ${mins} min). La transición no se dispara: el evento se descarta y la reserva sigue Confirmada.`,true); drawSim(); return; }
+  const prev=cur; cur=t.to; last=t.id; visited.add(cur);
+  const li=document.createElement('li'); li.innerHTML=`${SN[prev]||prev} —<b>${evName}</b>→ ${SN[cur]||cur}`; document.getElementById('log').prepend(li);
+  if(t.id==='t3') done.add('r3');
+  if(cur==='Caducada') done.add('r5');
+  if(cur==='Finalizada') done.add(visited.has('Suspendida')?'r2':'r1');
+  say(FINALS.includes(cur)?`${SN[cur]||cur} es un estado final: la reserva ya no responde a eventos. Pulsa Nueva reserva para empezar otra.`:`Transición disparada. Ahora la reserva está en ${SN[cur]||cur}.`);
+  drawSim();
+}
+document.getElementById('events').innerHTML=EVENTS.map(([k,n])=>`<button type="button" class="ev" id="ev-${k}" data-k="${k}">${n}</button>`).join('');
+document.querySelectorAll('.ev').forEach(b=>b.addEventListener('click',()=>fire(b.dataset.k)));
+document.getElementById('mins').addEventListener('input',e=>{ mins=+e.target.value; document.getElementById('minsout').textContent=mins+' min'; });
+document.getElementById('restart').addEventListener('click',()=>{ cur='Pendiente'; last=null; visited=new Set(['Pendiente']); document.getElementById('log').innerHTML=''; say('Nueva reserva creada en estado Pendiente.'); drawSim(); });
+drawSim();
+
+/* ---------- ENCONTRAR ERRORES ---------- */
+const R={Inactivo:[80,75],Regando:[300,75],Pausado:[190,180],Averiado:[310,270],Mantenimiento:[80,270]};
+const RT=[
+ {id:'a1',from:'Inactivo',to:'Regando',lab:'cuando(humedad < umbral)',off:-16,ldy:-6},
+ {id:'a2',from:'Regando',to:'Inactivo',lab:'cuando(humedad ≥ umbral)',off:-16,ldy:2},
+ {id:'a3',from:'Regando',to:'Pausado',lab:'lluvia',off:12},
+ {id:'a4',from:'Pausado',to:'Regando',lab:'finLluvia',off:12,err:'nd'},
+ {id:'a5',from:'Pausado',to:'Inactivo',lab:'finLluvia',off:12,err:'nd'},
+ {id:'a6',from:'Inactivo',to:'Pausado',lab:'',off:12,err:'sinev'},
+ {id:'a7',from:'Regando',to:'Averiado',lab:'falloBomba',ldx:36},
+ {id:'a8',from:'Mantenimiento',to:'Inactivo',lab:'finRevisión',ldx:-42}
+];
+const RS={Averiado:'sumidero',Mantenimiento:'inalc'};
+const ERRS={
+ nd:{t:'Comportamiento no determinista',x:'Desde Pausado, el mismo evento finLluvia lleva a dos estados distintos sin guardas. Hacen falta guardas excluyentes, por ejemplo [humedad < umbral] hacia Regando y [humedad ≥ umbral] hacia Inactivo.'},
+ sinev:{t:'Transición sin evento',x:'¿Cuándo pasa el riego de Inactivo a Pausado? Una transición entre estados estables necesita un evento (o una guarda) que la dispare. Además, estando inactivo no hay nada que pausar: probablemente sobra.'},
+ sumidero:{t:'Estado sin salida que no es final',x:'Una vez en Averiado, el sistema se queda ahí para siempre y no es un estado final. Falta al menos una transición, por ejemplo reparada → Inactivo.'},
+ inalc:{t:'Estado inalcanzable',x:'Ninguna transición entra en Mantenimiento, así que nunca se llega a él. Falta, por ejemplo, Inactivo → Mantenimiento con el evento revisión.'}
+};
+const OKX={
+ a1:'Correcta: cuando(…) es un evento de cambio, se dispara al cumplirse la condición.',
+ a2:'Correcta: vuelve a Inactivo cuando la humedad alcanza el umbral.',
+ a3:'Correcta: la lluvia pausa el riego.',
+ a7:'Correcta: un fallo de la bomba lleva a Averiado. El problema está en Averiado, no en esta transición.',
+ a8:'La transición en sí es correcta. El problema es que a Mantenimiento no se llega nunca.',
+ Inactivo:'Inactivo es correcto: tiene entrada (estado inicial) y salidas.',
+ Regando:'Regando es correcto.',
+ Pausado:'Pausado como estado es correcto; el problema está en dos de sus transiciones.'
+};
+let marks=new Set(), checked=false;
+function drawErr(){
+  let s=initial(R.Inactivo,[80,22]);
+  RT.forEach(t=>{ const g=geo(R[t.from],R[t.to],t.off); const on=marks.has(t.id);
+    const st=checked?resultFor(t.id):null;
+    const col= st==='ok'?'var(--ok)': st==='ko'?'var(--ko)': st==='miss'?'var(--warn)': on?'var(--plum)':'var(--muted)';
+    const d=`M${f1(g.s[0])},${f1(g.s[1])} Q${f1(g.C[0])},${f1(g.C[1])} ${f1(g.e[0])},${f1(g.e[1])}`;
+    s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${on||st?2.6:1.4}"${st==='miss'?' stroke-dasharray="5 4"':''}/>`+arrow(g.e,g.C,col);
+    s+=`<path d="${d}" fill="none" stroke="transparent" stroke-width="16" class="hit" data-id="${t.id}" tabindex="0" role="button" aria-label="Transición ${t.from} a ${t.to} ${t.lab||'sin etiqueta'}" aria-pressed="${on}"/>`;
+    if(t.lab){ const push=t.off?14*Math.sign(t.off):0; s+=label(t.lab,g.m[0]+g.n[0]*push+(t.ldx||0),g.m[1]+g.n[1]*push+(t.ldy||0)+4,on?'var(--plum)':'var(--fg)'); }
+  });
+  Object.entries(R).forEach(([k,c])=>{ const on=marks.has(k); const st=checked?resultFor(k):null;
+    const stroke= st==='ok'?'var(--ok)': st==='ko'?'var(--ko)': st==='miss'?'var(--warn)': on?'var(--plum)':'var(--fg)';
+    const fill= st==='ok'?'var(--ok-bg)': st==='ko'?'var(--ko-bg)': st==='miss'?'var(--warn-bg)': on?'var(--tint)':'var(--surface)';
+    s+=`<g class="hit" data-id="${k}" tabindex="0" role="button" aria-label="Estado ${k}" aria-pressed="${on}">${stateBox(k,c,fill,stroke,on||st?2.4:1.4)}</g>`; });
+  const svg=document.getElementById('errsvg'); svg.innerHTML=s;
+  svg.querySelectorAll('.hit').forEach(el=>{
+    const tog=()=>{ if(checked) return; const id=el.dataset.id; marks.has(id)?marks.delete(id):marks.add(id); drawErr(); };
+    el.addEventListener('click',tog);
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();} });
+  });
+}
+function errKey(id){ const t=RT.find(x=>x.id===id); return t?t.err:RS[id]; }
+function resultFor(id){
+  const k=errKey(id), on=marks.has(id);
+  if(k){ if(on) return 'ok';
+    if(k==='nd' && (marks.has('a4')||marks.has('a5'))) return null;
+    return 'miss'; }
+  return on?'ko':null;
+}
+document.getElementById('checkErr').addEventListener('click',()=>{
+  checked=true; drawErr();
+  const found=new Set([...marks].map(errKey).filter(Boolean));
+  const fps=[...marks].filter(id=>!errKey(id));
+  if(window.isMetric) isMetric('t3','estados','errores',found.size===4&&fps.length===0,`encontrados-${found.size}-falsas-${fps.length}`);
+  const items=[];
+  Object.entries(ERRS).forEach(([k,e])=>items.push(`<li class="${found.has(k)?'ok':'miss'}"><b>${found.has(k)?'Encontrado':'Se te escapó'}: ${e.t}.</b> ${e.x}</li>`));
+  fps.forEach(id=>items.push(`<li class="ko"><b>Marcaste ${RT.find(x=>x.id===id)?'una transición correcta':id}.</b> ${OKX[id]||'Este elemento es correcto.'}</li>`));
+  const fb=document.getElementById('errfb');
+  fb.innerHTML=`<div class="score">${found.size} de 4 errores encontrados${fps.length?`, ${fps.length} ${fps.length===1?'falsa alarma':'falsas alarmas'}`:''}.</div><ul class="fbl">${items.join('')}</ul>`;
+  fb.hidden=false;
+  if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t3','estados','errores'));
+});
+document.getElementById('resetErr').addEventListener('click',()=>{ marks.clear(); checked=false; document.getElementById('errfb').hidden=true; drawErr(); });
+drawErr();
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "Si usas este material, cítalo así."
+type: software
+title: "Ingeniería del Software: material interactivo"
+version: 1.0.0
+license: CC-BY-NC-SA-4.0
+authors:
+  - family-names: "Marín Lora"
+    given-names: "Carlos"
+    affiliation: "Escuela Universitaria Politécnica de Teruel, Universidad de Zaragoza"
+abstract: >-
+  Recurso educativo abierto con ejercicios interactivos y autocorregibles para la
+  asignatura Ingeniería del Software (30222) del Grado en Ingeniería Informática:
+  clasificación y redacción de requisitos, relaciones UML, construcción guiada de
+  diagramas de clases, diagramas de estados, principios SOLID y patrones de diseño,
+  diseño de casos de prueba y autorrevisión del proyecto.
+keywords:
+  - ingeniería del software
+  - recurso educativo abierto
+  - UML
+  - requisitos
+  - patrones de diseño
+  - pruebas de software

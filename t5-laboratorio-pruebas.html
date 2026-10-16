@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laboratorio de pruebas · IS 30222</title>
+<meta name="description" content="Particiones y valores límite, complejidad ciclomática y tablas de decisión.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: una columna con tres pestañas (caja negra, caja blanca, tabla de decisión); cada una es un banco de trabajo con enunciado, zona de trabajo y comprobación */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --inv:#F1ECE4; --inv-fg:#6E5B3F;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --inv:#2E2820; --inv-fg:#D7BE95; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --inv:#2E2820; --inv-fg:#D7BE95; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:15px;margin:0;font-weight:500}
+.intro,.muted{color:var(--muted);margin:0;max-width:62ch}
+code,.mono{font-family:var(--mono)}
+p code{font-size:.9em;background:var(--tint);padding:1px 5px;border-radius:4px}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-size:15px;padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--plum);border-bottom-color:var(--plum);font-weight:500}
+.panel{display:flex;flex-direction:column;gap:16px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sig{font-family:var(--mono);font-size:15px;color:var(--plum);overflow-x:auto}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:2px}
+.pick{display:flex;gap:6px;flex-wrap:wrap}
+.pick button{font:inherit;font-size:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.pick button[aria-pressed="true"]{background:var(--plum);border-color:var(--plum);color:var(--on-plum);font-weight:500}
+
+.add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=number]{font:inherit;font-family:var(--mono);font-size:16px;width:110px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:13px;padding:5px 6px 5px 10px;border-radius:8px;background:var(--tint);display:inline-flex;align-items:center;gap:6px}
+.chip.bad{background:var(--inv);color:var(--inv-fg)}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
+.empty{font-size:14px;color:var(--muted)}
+
+.line-wrap{overflow-x:auto}
+.line-wrap svg{display:block;width:100%;min-width:520px;height:auto}
+svg text{font-family:var(--font)}
+.cov{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.cov ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.cov li{display:flex;gap:8px;align-items:baseline}
+.mark{font-family:var(--mono);font-weight:500;width:1.2em;flex:none}
+.hit{color:var(--ok)} .miss{color:var(--muted)}
+.count{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+
+.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media (max-width:640px){.split{grid-template-columns:1fr}}
+pre.code{margin:0;font-family:var(--mono);font-size:13.5px;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto}
+pre.code .n{display:inline-block;width:1.6em;color:var(--plum);font-weight:500}
+.graph{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px}
+.graph svg{display:block;width:100%;max-width:300px;height:auto;margin:0 auto}
+.fields{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.fields input{width:84px}
+input.ok{border-color:var(--ok);background:var(--ok-bg)} input.ko{border-color:var(--ko);background:var(--ko-bg)}
+.fb{font-size:15px;display:flex;flex-direction:column;gap:6px}
+.fb .v{font-weight:700}
+.fb .v.ok{color:var(--ok)} .fb .v.ko{color:var(--ko)}
+.paths{margin:0;padding-left:20px;font-family:var(--mono);font-size:14px}
+details summary{cursor:pointer;color:var(--plum);font-weight:500;font-size:15px}
+details .muted{margin-top:6px}
+
+.dt-wrap{overflow-x:auto}
+table.dt{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.dt th,.dt td{border:1px solid var(--line);padding:7px 9px;text-align:center}
+.dt th:first-child,.dt td:first-child{text-align:left;white-space:nowrap}
+.dt thead th{color:var(--muted);font-weight:500;font-size:13px}
+.dt td.y{color:var(--fg);font-weight:500} .dt td.n{color:var(--muted)}
+.dt tr.act td{background:var(--tint)}
+.cell{font:inherit;font-size:14px;font-weight:500;min-width:44px;padding:5px 6px;border-radius:7px;border:1px dashed var(--plum);background:var(--surface);color:var(--plum);cursor:pointer}
+.cell.set{border-style:solid}
+.cell.ok{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.cell.ko{border-color:var(--ko);background:var(--ko-bg);color:var(--ko)}
+.foot{font-size:13px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Tema 5 · Pruebas</div>
+    <h1>Laboratorio de pruebas</h1>
+    <p class="intro">Tres bancos de trabajo para diseñar casos de prueba con método: particiones y valores límite, complejidad ciclomática y tablas de decisión. Prueba primero y comprueba después.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Técnica">
+    <button role="tab" id="tab-negra" aria-controls="p-negra" aria-selected="true">Caja negra</button>
+    <button role="tab" id="tab-blanca" aria-controls="p-blanca" aria-selected="false">Caja blanca</button>
+    <button role="tab" id="tab-decision" aria-controls="p-decision" aria-selected="false">Tabla de decisión</button>
+  </div>
+
+  <!-- ============ CAJA NEGRA ============ -->
+  <section class="panel" id="p-negra" role="tabpanel" aria-labelledby="tab-negra">
+    <div class="pick" id="spec-pick" role="group" aria-label="Función a probar"></div>
+    <div class="card">
+      <div class="sig" id="spec-sig"></div>
+      <ul class="rules" id="spec-rules"></ul>
+      <p class="muted">Solo ves la especificación, no el código. Añade valores de entrada (enteros) hasta cubrir todas las particiones y todos los valores límite con los mínimos casos posibles.</p>
+      <div class="add">
+        <input type="number" id="val" step="1" inputmode="numeric" aria-label="Valor de entrada">
+        <button type="button" class="btn" id="add">Añadir caso</button>
+        <button type="button" class="btn ghost" id="reset-n">Vaciar</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="card">
+      <h3>Particiones de equivalencia <span class="count">(esquema, no a escala)</span></h3>
+      <div class="line-wrap"><svg id="nline" viewBox="0 0 640 120" role="img" aria-label="Particiones y casos añadidos"></svg></div>
+      <div class="cov">
+        <div><h3>Particiones <span class="count" id="pc"></span></h3><ul id="plist"></ul></div>
+        <div><h3>Valores límite <span class="count" id="bc"></span></h3><ul id="blist"></ul></div>
+      </div>
+      <div class="fb" id="nfb"></div>
+      <details id="nsol"><summary>Ver un conjunto mínimo</summary><p class="muted" id="nsoltxt"></p></details>
+    </div>
+  </section>
+
+  <!-- ============ CAJA BLANCA ============ -->
+  <section class="panel" id="p-blanca" role="tabpanel" aria-labelledby="tab-blanca" hidden>
+    <div class="pick" id="snip-pick" role="group" aria-label="Fragmento"></div>
+    <div class="card">
+      <div class="sig" id="snip-sig"></div>
+      <div class="split">
+        <pre class="code" id="snip-code"></pre>
+        <div class="graph"><svg id="cfg" role="img" aria-label="Grafo de flujo"></svg></div>
+      </div>
+      <p class="muted">Cada letra es un nodo del grafo de flujo (un bloque de sentencias o una decisión). Cuenta y calcula.</p>
+      <div class="fields">
+        <label for="fN">Nodos (N)<input type="number" id="fN" min="0" inputmode="numeric"></label>
+        <label for="fE">Aristas (E)<input type="number" id="fE" min="0" inputmode="numeric"></label>
+        <label for="fV">V(G)<input type="number" id="fV" min="0" inputmode="numeric"></label>
+        <button type="button" class="btn" id="checkB">Comprobar</button>
+      </div>
+      <div class="fb" id="bfb"></div>
+      <details><summary>Recordatorio de fórmulas</summary>
+        <p class="muted">V(G) = E − N + 2. Equivale a P + 1, donde P es el número de decisiones simples (if, while, for, cada rama de un else if). V(G) es el número de caminos independientes, es decir, el mínimo de casos para recorrer un conjunto básico de caminos.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ TABLA DE DECISIÓN ============ -->
+  <section class="panel" id="p-decision" role="tabpanel" aria-labelledby="tab-decision" hidden>
+    <div class="card">
+      <h2>Reserva de un punto de recarga</h2>
+      <p class="muted">Regla de negocio: <strong>se puede reservar</strong> el punto si es hora valle, o si el usuario es abonado y la batería de su vehículo está por debajo del 20 %.</p>
+      <p class="muted">Rellena la fila de acción de cada regla (toca para alternar entre Sí y No) y comprueba.</p>
+      <div class="dt-wrap"><table class="dt" id="dt"></table></div>
+      <div class="add"><button type="button" class="btn" id="checkD">Comprobar</button><button type="button" class="btn ghost" id="resetD">Borrar</button></div>
+      <div class="fb" id="dfb"></div>
+    </div>
+    <div class="card" id="dsimp" hidden>
+      <h3>Tabla simplificada</h3>
+      <p class="muted">Cuando una condición no cambia el resultado se marca con un guion y varias reglas se funden en una. Las 8 combinaciones quedan en 4 reglas, y cada una es un caso de prueba.</p>
+      <div class="dt-wrap"><table class="dt">
+        <thead><tr><th>Condición</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th></tr></thead>
+        <tbody>
+          <tr><td>Hora valle</td><td class="y">S</td><td class="n">N</td><td class="n">N</td><td class="n">N</td></tr>
+          <tr><td>Abonado</td><td>–</td><td class="y">S</td><td class="y">S</td><td class="n">N</td></tr>
+          <tr><td>Batería &lt; 20 %</td><td>–</td><td class="y">S</td><td class="n">N</td><td>–</td></tr>
+          <tr class="act"><td><strong>Puede reservar</strong></td><td><strong>Sí</strong></td><td><strong>Sí</strong></td><td>No</td><td>No</td></tr>
+        </tbody></table></div>
+    </div>
+  </section>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+/* ---------- Pestañas ---------- */
+const TABS=['negra','blanca','decision'];
+function showTab(t){
+  TABS.forEach(x=>{
+    document.getElementById('tab-'+x).setAttribute('aria-selected',x===t);
+    document.getElementById('p-'+x).hidden = x!==t;
+  });
+}
+TABS.forEach(t=>document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t)));
+const h=(location.hash||'').slice(1); if(TABS.includes(h)) showTab(h);
+
+/* ---------- CAJA NEGRA ---------- */
+const SPECS={
+  desc:{label:'Descuento por volumen', sig:'descuentoVolumen(unidades: int) → %',
+    rules:['Menos de 1 o más de 200 unidades: error, cantidad no válida.','De 1 a 9 unidades: sin descuento (0 %).','De 10 a 49 unidades: 5 %.','De 50 a 200 unidades: 10 %.'],
+    parts:[{lo:-Infinity,hi:0,out:'error',inv:true},{lo:1,hi:9,out:'0 %'},{lo:10,hi:49,out:'5 %'},{lo:50,hi:200,out:'10 %'},{lo:201,hi:Infinity,out:'error',inv:true}],
+    sol:'Límites: 0, 1, 9, 10, 49, 50, 200 y 201. Esos ocho valores ya cubren las cinco particiones, así que un representante central (por ejemplo 30) es opcional.'},
+  guia:{label:'Grupos de visita guiada', sig:'guiasNecesarios(personas: int) → int',
+    rules:['Menos de 4 o más de 25 personas: error, grupo no admitido.','De 4 a 14 personas: 1 guía.','De 15 a 25 personas: 2 guías.'],
+    parts:[{lo:-Infinity,hi:3,out:'error',inv:true},{lo:4,hi:14,out:'1 guía'},{lo:15,hi:25,out:'2 guías'},{lo:26,hi:Infinity,out:'error',inv:true}],
+    sol:'Límites: 3, 4, 14, 15, 25 y 26. Con esos seis valores se cubren también las cuatro particiones.'}
+};
+let spec='desc', vals=[];
+function bounds(s){ const b=[]; s.parts.forEach(p=>{ if(isFinite(p.lo)) b.push(p.lo); if(isFinite(p.hi)) b.push(p.hi); }); return [...new Set(b)].sort((a,b)=>a-b); }
+function partOf(s,v){ return s.parts.findIndex(p=>v>=p.lo&&v<=p.hi); }
+function rangeTxt(p){ return !isFinite(p.lo)?`≤ ${p.hi}`:!isFinite(p.hi)?`≥ ${p.lo}`:`${p.lo} a ${p.hi}`; }
+
+document.getElementById('spec-pick').innerHTML=Object.entries(SPECS).map(([k,s])=>`<button type="button" data-k="${k}" aria-pressed="${k===spec}">${s.label}</button>`).join('');
+document.querySelectorAll('#spec-pick button').forEach(b=>b.addEventListener('click',()=>{
+  spec=b.dataset.k; vals=[];
+  document.querySelectorAll('#spec-pick button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  document.getElementById('nsol').open=false; renderN();
+}));
+function addVal(){
+  const inp=document.getElementById('val'); const v=parseInt(inp.value,10);
+  if(Number.isNaN(v)) return;
+  if(!vals.includes(v)) vals.push(v);
+  vals.sort((a,b)=>a-b); inp.value=''; inp.focus(); renderN();
+}
+document.getElementById('add').addEventListener('click',addVal);
+document.getElementById('val').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addVal();} });
+document.getElementById('reset-n').addEventListener('click',()=>{vals=[];renderN();});
+
+function renderN(){
+  const s=SPECS[spec], B=bounds(s);
+  document.getElementById('spec-sig').textContent=s.sig;
+  document.getElementById('spec-rules').innerHTML=s.rules.map(r=>`<li>${r}</li>`).join('');
+  const chips=document.getElementById('chips');
+  chips.innerHTML = vals.length ? vals.map(v=>{ const p=s.parts[partOf(s,v)];
+    return `<span class="chip${p.inv?' bad':''}">${v} → ${p.out}<button type="button" aria-label="Quitar ${v}" data-v="${v}">×</button></span>`; }).join('')
+    : '<span class="empty">Aún no hay casos. Prueba con un valor cualquiera.</span>';
+  chips.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{vals=vals.filter(x=>x!==+b.dataset.v);renderN();}));
+
+  // Recta esquemática: segmentos de igual ancho por partición
+  const W=640, x0=20, x1=620, n=s.parts.length, seg=(x1-x0)/n, y=56;
+  let svg='';
+  s.parts.forEach((p,i)=>{
+    const a=x0+i*seg;
+    svg+=`<rect x="${a+1}" y="${y-14}" width="${seg-2}" height="28" rx="4" fill="${p.inv?'var(--inv)':'var(--tint)'}"/>`;
+    svg+=`<text x="${a+seg/2}" y="${y+34}" text-anchor="middle" font-size="12" fill="var(--muted)">${rangeTxt(p)}</text>`;
+    svg+=`<text x="${a+seg/2}" y="${y+50}" text-anchor="middle" font-size="12" font-weight="500" fill="${p.inv?'var(--inv-fg)':'var(--plum)'}">${p.inv?'inválida':p.out}</text>`;
+    if(i>0) svg+=`<line x1="${a}" y1="${y-20}" x2="${a}" y2="${y+20}" stroke="var(--fg)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+  });
+  const pos=v=>{ const i=partOf(s,v), p=s.parts[i], a=x0+i*seg, pad=14;
+    let f; if(!isFinite(p.lo)) f = 1 - Math.min(1,(p.hi-v)/ (Math.abs(p.hi)+10||10));
+    else if(!isFinite(p.hi)) f = Math.min(1,(v-p.lo)/(Math.abs(p.lo)+10||10));
+    else f = p.hi===p.lo?0.5:(v-p.lo)/(p.hi-p.lo);
+    return a+pad+f*(seg-2*pad); };
+  vals.forEach((v,k)=>{ const cx=pos(v), isB=B.includes(v), ty=(k%2?y-24:y-30);
+    svg+=`<circle cx="${cx}" cy="${y}" r="5.5" fill="${isB?'var(--plum)':'var(--surface)'}" stroke="var(--plum)" stroke-width="2"/>`;
+    svg+=`<text x="${cx}" y="${ty}" text-anchor="middle" font-size="11" fill="var(--fg)" class="mono">${v}</text>`; });
+  document.getElementById('nline').innerHTML=svg;
+
+  const pHit=s.parts.map((p,i)=>vals.some(v=>partOf(s,v)===i));
+  const bHit=B.map(b=>vals.includes(b));
+  document.getElementById('plist').innerHTML=s.parts.map((p,i)=>`<li><span class="mark ${pHit[i]?'hit':'miss'}">${pHit[i]?'✓':'○'}</span><span>${rangeTxt(p)} · ${p.inv?'inválida':p.out}</span></li>`).join('');
+  document.getElementById('blist').innerHTML=B.map((b,i)=>`<li><span class="mark ${bHit[i]?'hit':'miss'}">${bHit[i]?'✓':'○'}</span><span class="mono">${b}</span></li>`).join('');
+  const np=pHit.filter(Boolean).length, nb=bHit.filter(Boolean).length;
+  document.getElementById('pc').textContent=`${np}/${s.parts.length}`;
+  document.getElementById('bc').textContent=`${nb}/${B.length}`;
+  const extra=vals.filter(v=>!B.includes(v));
+  const redund=extra.filter(v=>vals.some(w=>w!==v&&partOf(s,w)===partOf(s,v)));
+  let msg='';
+  if(!vals.length) msg='';
+  else if(np===s.parts.length&&nb===B.length&&(window.isMetric&&isMetric('t5','negra',spec,true),true)) msg=`<span class="v ok">Cobertura completa con ${vals.length} casos.</span>`+(redund.length?`<span>Te sobran ${redund.join(', ')}: su partición ya estaba cubierta por otro valor.</span>`:'<span>Sin casos redundantes.</span>');
+  else if(np===s.parts.length) msg=`<span class="v ko">Particiones cubiertas, pero faltan valores límite.</span><span>Los fallos se esconden en los bordes: prueba justo en cada extremo y justo fuera.</span>`;
+  else msg=`<span>Llevas ${np} de ${s.parts.length} particiones${s.parts.some((p,i)=>p.inv&&!pHit[i])?'. No olvides las inválidas: también hay que probar que el sistema rechaza lo que debe.':'.'}</span>`;
+  document.getElementById('nfb').innerHTML=msg;
+  document.getElementById('nsoltxt').textContent=s.sol;
+}
+renderN();
+
+/* ---------- CAJA BLANCA ---------- */
+const SNIPS={
+  s1:{label:'Bucle', sig:'precioCesta(cesta, socio)',
+    code:[['A','total = 0; i = 0'],['A','if (socio)'],['B','    desc = 0.10'],['','else'],['C','    desc = 0'],['D','while (i < cesta.n)'],['E','    total += cesta.precio[i] * (1 - desc); i++'],['F','return total']],
+    nodes:{A:[130,28],B:[70,90],C:[190,90],D:[130,152],E:[205,215],F:[60,215]},
+    edges:[['A','B'],['A','C'],['B','D'],['C','D'],['D','E',14],['E','D',14],['D','F']],
+    vb:[260,248], P:2, paths:['A B D F','A C D F','A B D E D F']},
+  s2:{label:'Else if', sig:'avisarEstado(t, sensores)',
+    code:[['A','if (t < 0)'],['B','    estado = HELADA'],['C','else if (t > 35)'],['D','    estado = CALOR'],['','else'],['E','    estado = NORMAL'],['F','for (s : sensores)'],['G','    s.avisar(estado)'],['H','return']],
+    nodes:{A:[130,28],B:[55,95],C:[195,95],D:[150,160],E:[235,160],F:[130,225],G:[215,285],H:[55,285]},
+    edges:[['A','B'],['A','C'],['C','D'],['C','E'],['B','F'],['D','F'],['E','F'],['F','G',14],['G','F',14],['F','H']],
+    vb:[270,316], P:3, paths:['A B F H','A C D F H','A C E F H','A B F G F H']},
+  s3:{label:'Anidado', sig:'descuento(pedido, cliente)',
+    code:[['A','if (pedido.unidades >= 10)'],['B','    if (cliente.esSocio)'],['C','        d = 0.15'],['','    else'],['D','        d = 0.05'],['','else'],['E','    d = 0'],['F','return pedido.precio * (1 - d)']],
+    nodes:{A:[130,28],B:[80,95],E:[205,130],C:[40,165],D:[125,165],F:[130,235]},
+    edges:[['A','B'],['A','E'],['B','C'],['B','D'],['C','F'],['D','F'],['E','F']],
+    vb:[260,266], P:2, paths:['A B C F','A B D F','A E F']}
+};
+let snip='s1';
+document.getElementById('snip-pick').innerHTML=Object.entries(SNIPS).map(([k,s])=>`<button type="button" data-k="${k}" aria-pressed="${k===snip}">${s.label}</button>`).join('');
+document.querySelectorAll('#snip-pick button').forEach(b=>b.addEventListener('click',()=>{
+  snip=b.dataset.k; document.querySelectorAll('#snip-pick button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderB();
+}));
+function edgeSvg(a,b,off){
+  const r=15, mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy);
+  const cx=mx+(-dy/L)*(off||0), cy=my+(dx/L)*(off||0);
+  const u=(px,py,qx,qy)=>{const l=Math.hypot(qx-px,qy-py);return [(qx-px)/l,(qy-py)/l];};
+  const s=u(a[0],a[1],cx,cy), e=u(b[0],b[1],cx,cy);
+  const sx=a[0]+s[0]*r, sy=a[1]+s[1]*r, ex=b[0]+e[0]*r, ey=b[1]+e[1]*r;
+  const d=u(cx,cy,ex,ey), n=[-d[1],d[0]];
+  const ax=ex-d[0]*9, ay=ey-d[1]*9;
+  return `<path d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" fill="none" stroke="var(--muted)" stroke-width="1.4"/>
+    <polygon points="${ex.toFixed(1)},${ey.toFixed(1)} ${(ax+n[0]*4.5).toFixed(1)},${(ay+n[1]*4.5).toFixed(1)} ${(ax-n[0]*4.5).toFixed(1)},${(ay-n[1]*4.5).toFixed(1)}" fill="var(--muted)"/>`;
+}
+function renderB(){
+  const s=SNIPS[snip];
+  document.getElementById('snip-sig').textContent=s.sig;
+  document.getElementById('snip-code').innerHTML=s.code.map(([n,t])=>`<span class="n">${n}</span>${t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}`).join('\n');
+  const g=document.getElementById('cfg');
+  g.setAttribute('viewBox',`0 0 ${s.vb[0]} ${s.vb[1]}`);
+  let svg=s.edges.map(([a,b,o])=>edgeSvg(s.nodes[a],s.nodes[b],o)).join('');
+  svg+=Object.entries(s.nodes).map(([k,[x,y]])=>`<circle cx="${x}" cy="${y}" r="14" fill="var(--surface)" stroke="var(--plum)" stroke-width="1.8"/><text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="13" font-weight="500" fill="var(--fg)">${k}</text>`).join('');
+  g.innerHTML=svg;
+  ['fN','fE','fV'].forEach(id=>{const i=document.getElementById(id); i.value=''; i.className='';});
+  document.getElementById('bfb').innerHTML='';
+}
+document.getElementById('checkB').addEventListener('click',()=>{
+  const s=SNIPS[snip], N=Object.keys(s.nodes).length, E=s.edges.length, V=E-N+2;
+  const want={fN:N,fE:E,fV:V}; let all=true;
+  Object.entries(want).forEach(([id,w])=>{ const i=document.getElementById(id), v=parseInt(i.value,10);
+    const ok=v===w; i.className=Number.isNaN(v)?'':(ok?'ok':'ko'); if(!ok) all=false; });
+  if(window.isMetric) isMetric('t5','blanca',snip,all,['fN','fE','fV'].filter(id=>document.getElementById(id).className!=='ok').map(id=>id.slice(1)).join('-'));
+  const fb=document.getElementById('bfb');
+  if(all) fb.innerHTML=`<span class="v ok">Correcto: V(G) = ${E} − ${N} + 2 = ${V}.</span>
+    <span>Comprobación cruzada: hay ${s.P} decisiones, y P + 1 = ${s.P+1}. Un conjunto básico de ${V} caminos independientes:</span>
+    <ol class="paths">${s.paths.map(p=>`<li>${p}</li>`).join('')}</ol>
+    <span class="muted">Cada camino añade al menos una arista que los anteriores no recorrían. Necesitas ${V} casos de prueba para recorrerlos.</span>`;
+  else { const hints=[];
+    if(parseInt(document.getElementById('fN').value,10)!==N) hints.push('Cuenta los círculos del grafo: cada uno es un nodo.');
+    if(parseInt(document.getElementById('fE').value,10)!==E) hints.push('Cuenta las flechas, incluida la que vuelve al inicio del bucle si la hay.');
+    if(parseInt(document.getElementById('fV').value,10)!==V) hints.push('Aplica V(G) = E − N + 2 con tus valores, o cuenta las decisiones y suma 1.');
+    fb.innerHTML=`<span class="v ko">Revisa los campos en rojo.</span>${hints.map(x=>`<span>${x}</span>`).join('')}`; }
+  if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t5','blanca',snip));
+});
+renderB();
+
+/* ---------- TABLA DE DECISIÓN ---------- */
+const COMB=[]; [1,0].forEach(a=>[1,0].forEach(v=>[1,0].forEach(b=>COMB.push([a,v,b]))));
+const truth=([a,v,b])=> v || (a&&b);
+let act=COMB.map(()=>null);
+function renderD(){
+  const SN=x=>x?'<td class="y">S</td>':'<td class="n">N</td>';
+  document.getElementById('dt').innerHTML=`<thead><tr><th>Condición</th>${COMB.map((_,i)=>`<th>R${i+1}</th>`).join('')}</tr></thead>
+   <tbody>
+    <tr><td>Abonado</td>${COMB.map(c=>SN(c[0])).join('')}</tr>
+    <tr><td>Hora valle</td>${COMB.map(c=>SN(c[1])).join('')}</tr>
+    <tr><td>Batería &lt; 20 %</td>${COMB.map(c=>SN(c[2])).join('')}</tr>
+    <tr class="act"><td><strong>Puede reservar</strong></td>${COMB.map((c,i)=>`<td><button type="button" class="cell${act[i]===null?'':' set'}" id="cell-${i}" data-i="${i}">${act[i]===null?'?':act[i]?'Sí':'No'}</button></td>`).join('')}</tr>
+   </tbody>`;
+  document.querySelectorAll('.cell').forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.i; act[i]= act[i]===null?true: act[i]?false:true;
+    b.textContent=act[i]?'Sí':'No'; b.className='cell set';
+    document.getElementById('dfb').innerHTML='';
+  }));
+}
+document.getElementById('checkD').addEventListener('click',()=>{
+  let ok=0, pend=0;
+  COMB.forEach((c,i)=>{ const b=document.getElementById('cell-'+i);
+    if(act[i]===null){pend++;return;}
+    const r=act[i]===!!truth(c); b.classList.add(r?'ok':'ko'); if(r) ok++; });
+  if(!pend && window.isMetric) isMetric('t5','decision','reserva',ok===8,`${ok}-de-8`);
+  const fb=document.getElementById('dfb');
+  if(pend) fb.innerHTML=`<span>Te faltan ${pend} reglas por rellenar.</span>`;
+  else if(ok===8){ fb.innerHTML='<span class="v ok">Las 8 reglas son correctas.</span><span>Ahora mira cómo se simplifica la tabla.</span>'; document.getElementById('dsimp').hidden=false; }
+  else fb.innerHTML=`<span class="v ko">${ok} de 8 correctas.</span><span>Para cada columna, pregúntate primero si es hora valle; si no lo es, solo se reserva con abonado y batería baja a la vez.</span>`;
+  if(!pend) if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t5','decision','reserva'));
+});
+document.getElementById('resetD').addEventListener('click',()=>{act=COMB.map(()=>null);renderD();document.getElementById('dfb').innerHTML='';document.getElementById('dsimp').hidden=true;});
+renderD();
+</script>
+</body>
+</html>

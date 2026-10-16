@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrenador de relaciones UML · IS 30222</title>
+<meta name="description" content="Elegir la relación UML correcta entre clases y entre casos de uso, con corrección y diagrama.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: una sola columna tipo ficha de ejercicio; cabecera, progreso, enunciado, opciones y corrección con el diagrama */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:680px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+.intro{color:var(--muted);margin:0;max-width:60ch}
+.intro code{font-family:var(--mono);font-size:.92em}
+
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:14px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--plum);border-color:var(--plum);color:var(--on-plum);font-weight:500}
+
+.progress{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--plum);width:0;transition:width .25s}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.dom{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.scen{font-size:18px;margin:0;text-wrap:pretty}
+.scen code,.exp code{font-family:var(--mono);font-size:.9em;background:var(--tint);padding:1px 5px;border-radius:4px}
+.q{font-size:14px;color:var(--muted);margin:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.opt{font:inherit;font-size:15px;text-align:left;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.opt small{font-size:12px;color:var(--muted)}
+.opt:hover:not(:disabled){border-color:var(--plum)}
+.opt:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.opt:disabled{cursor:default}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.opt.ko{background:var(--ko-bg);border-color:var(--ko);color:var(--ko)}
+.opt.ok small,.opt.ko small{color:inherit;opacity:.85}
+
+.fb{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}
+.verdict{font-weight:700;font-size:16px}
+.verdict.ok{color:var(--ok)} .verdict.ko{color:var(--ko)} .verdict.warn{color:var(--warn)}
+.exp{margin:0}
+.diag{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px;overflow-x:auto}
+.diag svg{display:block;width:100%;max-width:420px;height:auto;margin:0 auto}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:10px 18px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+
+.sum h2{font-size:24px;margin:0}
+.big{font-size:44px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums;line-height:1}
+.fails{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fails li{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.fails b{color:var(--plum);font-weight:500}
+
+details.legend{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+details.legend summary{cursor:pointer;font-weight:500}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.lg figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.lg figcaption{font-size:13px;color:var(--muted)}
+.lg figcaption b{color:var(--fg);font-weight:500}
+.foot{font-size:13px;color:var(--muted);margin:0}
+
+svg text{font-family:var(--font)}
+svg .mono{font-family:var(--mono)}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Tema 3 · Análisis</div>
+    <h1>Relaciones UML</h1>
+    <p class="intro">Lee cada situación y elige la relación que dibujarías. Al responder verás por qué y cómo se dibuja. Ojo con una trampa clásica: el «extend» de los casos de uso no es el <code>extends</code> de las clases.</p>
+  </header>
+
+  <div class="seg" role="group" aria-label="Qué practicar">
+    <button type="button" data-f="todo" aria-pressed="true">Todo</button>
+    <button type="button" data-f="clases" aria-pressed="false">Diagrama de clases</button>
+    <button type="button" data-f="cu" aria-pressed="false">Casos de uso</button>
+  </div>
+
+  <div>
+    <div class="progress"><span id="pos">Ejercicio 1 de 20</span><span id="score">Aciertos: 0</span></div>
+    <div class="bar" aria-hidden="true"><i id="barfill"></i></div>
+  </div>
+
+  <section class="card" id="card" aria-live="polite"></section>
+
+  <details class="legend">
+    <summary>Chuleta de notación</summary>
+    <div class="lg" id="legend"></div>
+  </details>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+const OPTS = [
+  {k:'asoc', n:'Asociación', s:'línea simple'},
+  {k:'agr',  n:'Agregación', s:'rombo hueco'},
+  {k:'comp', n:'Composición', s:'rombo relleno'},
+  {k:'gen',  n:'Generalización', s:'herencia'},
+  {k:'real', n:'Realización', s:'implementa interfaz'},
+  {k:'inc',  n:'«include»', s:'entre casos de uso'},
+  {k:'ext',  n:'«extend»', s:'entre casos de uso'}
+];
+const NAME = Object.fromEntries(OPTS.map(o=>[o.k,o.n]));
+
+// d: [izquierda, derecha]; el adorno se dibuja en el extremo derecho.
+// gen/real: sub → super · agr/comp: parte → todo · inc: base → incluido · ext: extensión → base
+const ITEMS = [
+ {dom:'Teleconsulta rural', t:'clases', ans:'asoc',
+  txt:'Un médico atiende a muchos pacientes y un paciente puede ser atendido por varios médicos. Ninguno forma parte del otro.',
+  exp:'No hay semántica todo-parte, así que es una asociación con multiplicidad * a * en ambos extremos. Que uno "atienda" o "tenga" al otro no basta para poner rombos.',
+  d:[['Paciente','c'],['Medico','c']]},
+ {dom:'Teleconsulta rural', t:'clases', ans:'comp',
+  txt:'La historia clínica está formada por anotaciones. Cada anotación pertenece a una sola historia y, si la historia se elimina, sus anotaciones desaparecen con ella.',
+  exp:'Todo-parte con ciclo de vida compartido y una parte que no se comparte: composición. El rombo relleno va en el extremo del todo (HistoriaClinica).',
+  d:[['Anotacion','c'],['HistoriaClinica','c']]},
+ {dom:'Torneos de videojuegos', t:'clases', ans:'agr', alt:['asoc'],
+  txt:'Un torneo reúne a varios equipos. Los equipos existen antes de inscribirse, siguen existiendo cuando el torneo termina y pueden jugar varios torneos.',
+  exp:'El torneo agrupa equipos (todo-parte), pero la parte vive por su cuenta y se comparte: agregación, con rombo hueco en Torneo. Composición sería incorrecta.',
+  d:[['Equipo','c'],['Torneo','c']]},
+ {dom:'Editor de niveles', t:'clases', ans:'comp',
+  txt:'Un nivel del editor está hecho de casillas. Cada casilla pertenece a un único nivel y no tiene sentido fuera de él; borrar el nivel borra sus casillas.',
+  exp:'La casilla no existe sin su nivel y no se comparte: composición, rombo relleno en Nivel.',
+  d:[['Casilla','c'],['Nivel','c']]},
+ {dom:'Sensores agrícolas', t:'clases', ans:'real',
+  txt:'Las clases SensorHumedad y SensorTemperatura implementan la interfaz Medible, que solo declara la operación leer().',
+  exp:'Una clase que cumple el contrato de una interfaz se une a ella por realización: línea discontinua con triángulo hueco hacia la interfaz. En Java sería <code>implements</code>.',
+  d:[['SensorHumedad','c'],['Medible','i']]},
+ {dom:'Sensores agrícolas', t:'clases', ans:'agr', alt:['asoc'],
+  txt:'Los sensores se instalan en una parcela, pero se pueden retirar y reinstalar en otra. Si se da de baja la parcela, los sensores siguen en el inventario.',
+  exp:'La parcela agrupa sensores, pero la parte sobrevive al todo: agregación. Composición sería un error porque el sensor no desaparece con la parcela.',
+  d:[['Sensor','c'],['Parcela','c']]},
+ {dom:'Puntos de recarga', t:'clases', ans:'comp',
+  txt:'Un punto de recarga tiene dos conectores físicos. Un conector no se traslada a otro punto y, si el punto se da de baja, sus conectores se dan de baja con él.',
+  exp:'La parte depende del todo para existir y pertenece a un único todo: composición, rombo relleno en PuntoRecarga.',
+  d:[['Conector','c'],['PuntoRecarga','c']]},
+ {dom:'Puntos de recarga', t:'clases', ans:'gen',
+  txt:'TarifaNocturna hereda de la clase abstracta Tarifa, que ya implementa calcularIVA() y deja abstracto calcularPrecio().',
+  exp:'Hereda de una clase, aunque sea abstracta: generalización, con línea continua y triángulo hueco. Si Tarifa fuese una interfaz sin implementación, sería realización.',
+  d:[['TarifaNocturna','c'],['Tarifa','a']]},
+ {dom:'Puntos de recarga', t:'clases', ans:'asoc',
+  txt:'Un conductor tiene registrados uno o varios vehículos en la app.',
+  exp:'El "tiene" del enunciado no implica todo-parte: un vehículo no es un componente del conductor. Asociación 1 a 1..*. Es la trampa más habitual; la asociación es la opción por defecto.',
+  d:[['Conductor','c'],['Vehiculo','c']]},
+ {dom:'App de patrimonio', t:'clases', ans:'agr', alt:['asoc'],
+  txt:'Una ruta turística agrupa puntos de interés. El mismo castillo aparece en tres rutas distintas.',
+  exp:'Si la parte se comparte entre varios todos, no puede ser composición. Agregación, con rombo hueco en Ruta.',
+  d:[['PuntoInteres','c'],['Ruta','c']]},
+ {dom:'App de patrimonio', t:'cu', ans:'inc',
+  txt:'Comprar entrada siempre necesita Validar pago, y Reservar visita guiada también lo usa.',
+  exp:'Comportamiento obligatorio y reutilizado por varios casos: «include». La flecha discontinua va del caso base (Comprar entrada) al incluido (Validar pago).',
+  d:[['Comprar entrada','u'],['Validar pago','u']]},
+ {dom:'App de patrimonio', t:'cu', ans:'ext',
+  txt:'Mientras usa Ver ruta, el visitante puede activar si quiere Mostrar capa RA, solo si su móvil lo permite.',
+  exp:'Comportamiento opcional o condicional que amplía un caso base: «extend». Ojo con la dirección: la flecha va de la extensión (Mostrar capa RA) al caso base (Ver ruta).',
+  d:[['Mostrar capa RA','u'],['Ver ruta','u']]},
+ {dom:'Obrador con venta online', t:'cu', ans:'inc',
+  txt:'Hacer encargo y Modificar encargo empiezan siempre por Identificar cliente.',
+  exp:'Paso obligatorio compartido por dos casos: «include», del caso base al incluido.',
+  d:[['Hacer encargo','u'],['Identificar cliente','u']]},
+ {dom:'Obrador con venta online', t:'cu', ans:'ext',
+  txt:'Al Cobrar encargo, y solo si el pedido supera las 20 unidades, se ejecuta Aplicar descuento por volumen.',
+  exp:'Se ejecuta solo bajo una condición: «extend». La flecha sale de Aplicar descuento y apunta a Cobrar encargo.',
+  d:[['Aplicar descuento','u'],['Cobrar encargo','u']]},
+ {dom:'Obrador con venta online', t:'clases', ans:'comp',
+  txt:'Un encargo se compone de líneas de encargo (producto, tamaño, extras). Una línea no existe fuera de su encargo.',
+  exp:'Parte exclusiva que nace y muere con su todo: composición, rombo relleno en Encargo.',
+  d:[['LineaEncargo','c'],['Encargo','c']]},
+ {dom:'Obrador con venta online', t:'clases', ans:'asoc',
+  txt:'Un cliente realiza muchos encargos a lo largo del año. Cada encargo es de un solo cliente.',
+  exp:'Un encargo no es una parte del cliente. Es una asociación 1 a 0..*: que la multiplicidad sea de uno a muchos no convierte la relación en todo-parte.',
+  d:[['Cliente','c'],['Encargo','c']]},
+ {dom:'Teleconsulta rural', t:'cu', ans:'asoc',
+  txt:'El actor Médico puede Consultar historial. ¿Cómo se une el actor al caso de uso?',
+  exp:'Entre actor y caso de uso solo hay asociación: una línea continua, sin flecha ni estereotipo. «include» y «extend» unen casos de uso entre sí, nunca actores.',
+  d:[['Médico','x'],['Consultar historial','u']]},
+ {dom:'Teleconsulta rural', t:'cu', ans:'gen',
+  txt:'Los actores Médico y Enfermero comparten todos los casos de uso del actor Sanitario (Consultar agenda, Ver historial) y además tienen los suyos propios.',
+  exp:'Entre actores se usa generalización: Médico hereda los casos de uso de Sanitario. Triángulo hueco hacia el actor general.',
+  d:[['Médico','x'],['Sanitario','x']]},
+ {dom:'Torneos de videojuegos', t:'clases', ans:'gen',
+  txt:'En el código aparece <code>class Liga extends Competicion</code>. ¿Qué relación UML dibujas?',
+  exp:'<code>extends</code> en código es herencia: generalización. No tiene nada que ver con el «extend» de los casos de uso. Misma palabra, conceptos distintos.',
+  d:[['Liga','c'],['Competicion','c']]},
+ {dom:'Sensores agrícolas', t:'cu', ans:'ext',
+  txt:'En Registrar lectura, si la humedad baja del umbral, se dispara Enviar alerta al agricultor.',
+  exp:'Comportamiento condicional que se añade al caso base: «extend», de Enviar alerta hacia Registrar lectura.',
+  d:[['Enviar alerta','u'],['Registrar lectura','u']]}
+];
+
+/* ---------- Diagrama ---------- */
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function half(kind){ return kind==='u'?66 : kind==='x'?16 : 62; }
+function node(name, kind, cx){
+  const y=50;
+  if(kind==='u') return `<ellipse cx="${cx}" cy="${y}" rx="66" ry="24" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.4"/>
+    <text x="${cx}" y="${y+4}" text-anchor="middle" font-size="11.5" fill="var(--fg)">${esc(name)}</text>`;
+  if(kind==='x') return `<g stroke="var(--fg)" stroke-width="1.4" fill="none">
+      <circle cx="${cx}" cy="${y-22}" r="6" fill="var(--surface)"/>
+      <line x1="${cx}" y1="${y-16}" x2="${cx}" y2="${y+4}"/>
+      <line x1="${cx-11}" y1="${y-8}" x2="${cx+11}" y2="${y-8}"/>
+      <line x1="${cx}" y1="${y+4}" x2="${cx-9}" y2="${y+18}"/>
+      <line x1="${cx}" y1="${y+4}" x2="${cx+9}" y2="${y+18}"/></g>
+    <text x="${cx}" y="${y+34}" text-anchor="middle" font-size="11.5" fill="var(--fg)">${esc(name)}</text>`;
+  const top = `<rect x="${cx-62}" y="${y-20}" width="124" height="40" rx="2" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.4"/>`;
+  if(kind==='i') return top+`<text x="${cx}" y="${y-4}" text-anchor="middle" font-size="9.5" fill="var(--muted)" class="mono">«interface»</text>
+    <text x="${cx}" y="${y+12}" text-anchor="middle" font-size="12.5" font-weight="500" fill="var(--fg)">${esc(name)}</text>`;
+  const it = kind==='a' ? ' font-style="italic"' : '';
+  return top+`<text x="${cx}" y="${y+4}" text-anchor="middle" font-size="12.5" font-weight="500"${it} fill="var(--fg)">${esc(name)}</text>`;
+}
+function diagram(d, rel){
+  const L=72, R=268, y=50;
+  const x1=L+half(d[0][1]), x2=R-half(d[1][1]);
+  const dashed = (rel==='real'||rel==='inc'||rel==='ext');
+  let lineEnd=x2, deco='';
+  if(rel==='gen'||rel==='real'){ lineEnd=x2-13;
+    deco=`<polygon points="${x2},${y} ${x2-13},${y-7} ${x2-13},${y+7}" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.4"/>`; }
+  if(rel==='agr'||rel==='comp'){ lineEnd=x2-20;
+    deco=`<polygon points="${x2},${y} ${x2-10},${y-6} ${x2-20},${y} ${x2-10},${y+6}" fill="${rel==='comp'?'var(--fg)':'var(--surface)'}" stroke="var(--fg)" stroke-width="1.4"/>`; }
+  if(rel==='inc'||rel==='ext'){
+    deco=`<polyline points="${x2-10},${y-6} ${x2},${y} ${x2-10},${y+6}" fill="none" stroke="var(--fg)" stroke-width="1.4"/>
+      <text x="${(x1+x2)/2}" y="${y-8}" text-anchor="middle" font-size="9.5" fill="var(--plum)" class="mono">«${rel==='inc'?'include':'extend'}»</text>`; }
+  const line=`<line x1="${x1}" y1="${y}" x2="${lineEnd}" y2="${y}" stroke="var(--fg)" stroke-width="1.4"${dashed?' stroke-dasharray="5 4"':''}/>`;
+  return `<svg viewBox="0 0 340 92" role="img" aria-label="${NAME[rel]} entre ${esc(d[0][0])} y ${esc(d[1][0])}">${node(d[0][0],d[0][1],L)}${node(d[1][0],d[1][1],R)}${line}${deco}</svg>`;
+}
+
+/* ---------- Leyenda ---------- */
+const LEG = [
+ ['asoc','Asociación','Relación genérica. Opción por defecto.',[['A','c'],['B','c']]],
+ ['agr','Agregación','Todo-parte débil. Rombo hueco en el todo.',[['Parte','c'],['Todo','c']]],
+ ['comp','Composición','Todo-parte fuerte, la parte muere con el todo.',[['Parte','c'],['Todo','c']]],
+ ['gen','Generalización','Herencia (extends). Triángulo hacia la superclase.',[['Hija','c'],['Padre','c']]],
+ ['real','Realización','Implementa una interfaz (implements).',[['Clase','c'],['Interfaz','i']]],
+ ['inc','«include»','Obligatorio. Del caso base al incluido.',[['Base','u'],['Incluido','u']]],
+ ['ext','«extend»','Opcional o condicional. De la extensión a la base.',[['Extensión','u'],['Base','u']]]
+];
+document.getElementById('legend').innerHTML = LEG.map(([k,n,s,d])=>
+  `<figure><div class="diag">${diagram(d,k)}</div><figcaption><b>${n}</b>. ${s}</figcaption></figure>`).join('');
+
+/* ---------- Estado ---------- */
+let filter='todo', order=[], idx=0, score=0, answered=false, fails=[], retrying=false;
+const card=document.getElementById('card');
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function start(list){
+  retrying=!!list;
+  order = shuffle(list ? list.slice() : ITEMS.filter(it=>filter==='todo'||it.t===filter));
+  idx=0; score=0; fails=[]; render();
+}
+function updateProgress(){
+  const done = Math.min(idx + (answered?1:0), order.length);
+  document.getElementById('pos').textContent = idx<order.length ? `Ejercicio ${idx+1} de ${order.length}` : `${order.length} de ${order.length}`;
+  document.getElementById('score').textContent = `Aciertos: ${score}`;
+  document.getElementById('barfill').style.width = (100*done/order.length)+'%';
+}
+function render(){
+  answered=false;
+  if(idx>=order.length) return summary();
+  const it=order[idx];
+  card.innerHTML = `<div class="dom">${it.dom} · ${it.t==='cu'?'casos de uso':'clases'}</div>
+    <p class="scen">${it.txt}</p>
+    <p class="q">¿Qué relación dibujarías?</p>
+    <div class="opts">${OPTS.map(o=>`<button type="button" class="opt" id="opt-${o.k}" data-k="${o.k}">${o.n}<small>${o.s}</small></button>`).join('')}</div>
+    <div class="fb" id="fb" hidden></div>`;
+  card.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.k)));
+  updateProgress();
+  if(window.isMark) isMark();
+}
+function answer(k){
+  if(answered) return; answered=true;
+  const it=order[idx];
+  const right = k===it.ans, partial = !right && (it.alt||[]).includes(k);
+  if(right||partial) score++; else fails.push({it,k});
+  { const iid=String(ITEMS.indexOf(it)+1).padStart(2,'0');
+    if(retrying){ if(window.isRetry) isRetry('t3','relaciones',iid,right||partial); }
+    else if(window.isMetric) isMetric('t3','relaciones',iid,right||partial,right?null:k); }
+  card.querySelectorAll('.opt').forEach(b=>{
+    b.disabled=true;
+    if(b.dataset.k===it.ans) b.classList.add('ok');
+    else if(b.dataset.k===k) b.classList.add(partial?'ok':'ko');
+  });
+  const fb=document.getElementById('fb');
+  const v = right ? ['ok','Correcto']
+          : partial ? ['warn',`Aceptable. La respuesta más precisa es ${NAME[it.ans]}`]
+          : ['ko',`No. Es ${NAME[it.ans]}`];
+  const last = idx===order.length-1;
+  fb.innerHTML = `<div class="verdict ${v[0]}">${v[1]}</div>
+    <p class="exp">${it.exp}</p>
+    <div class="diag">${diagram(it.d,it.ans)}</div>
+    <div class="row"><button type="button" class="btn" id="next">${last?'Ver resultado':'Siguiente'}</button></div>`;
+  fb.hidden=false;
+  if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t3','relaciones',String(ITEMS.indexOf(it)+1).padStart(2,'0')));
+  updateProgress();
+  const nx=document.getElementById('next');
+  nx.addEventListener('click',()=>{idx++;render();});
+  nx.focus({preventScroll:true});
+}
+function summary(){
+  const n=order.length;
+  if(!retrying && window.isEnd) isEnd('t3','relaciones',score/n);
+  card.innerHTML = `<div class="sum" style="display:flex;flex-direction:column;gap:14px">
+    <div class="dom">Resultado</div>
+    <div><span class="big">${score}</span><span style="color:var(--muted)"> de ${n}</span></div>
+    <h2>${score===n?'Todo bien. Prueba con otro filtro o repite para ver otro orden.':fails.length<=3?'Casi. Repasa estos:':'Repasa estos y vuelve a intentarlo:'}</h2>
+    ${fails.length?`<ul class="fails">${fails.map(f=>`<li>${f.it.txt}<br>Elegiste ${NAME[f.k]}; era <b>${NAME[f.it.ans]}</b>.</li>`).join('')}</ul>`:''}
+    <div class="row">
+      ${fails.length?'<button type="button" class="btn" id="retry">Repetir los fallos</button>':''}
+      <button type="button" class="btn ${fails.length?'ghost':''}" id="again">Empezar de nuevo</button>
+    </div></div>`;
+  updateProgress();
+  const r=document.getElementById('retry'); if(r) r.addEventListener('click',()=>start(fails.map(f=>f.it)));
+  document.getElementById('again').addEventListener('click',()=>start());
+}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  filter=b.dataset.f;
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  start();
+}));
+start();
+</script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Constructor de diagramas de clases · IS 30222</title>
+<meta name="description" content="Construcción guiada de un diagrama de clases a partir de un enunciado.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: proceso en dos pasos; en el paso 2 el diagrama va fijo a la derecha en escritorio y arriba en el móvil, y se dibuja mientras decides */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.narrow{max-width:720px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:15px;margin:0;font-weight:500}
+.intro,.muted{color:var(--muted);margin:0;max-width:64ch}
+.pick{display:flex;gap:6px;flex-wrap:wrap}
+.pick button{font:inherit;font-size:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.pick button[aria-pressed="true"]{background:var(--plum);border-color:var(--plum);color:var(--on-plum);font-weight:500}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.step{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button:focus-visible,select:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.stmt{font-size:17px;line-height:2;margin:0;max-width:66ch}
+.tok{font:inherit;font-size:inherit;line-height:1.4;padding:1px 4px;border-radius:5px;border:0;border-bottom:2px dotted var(--muted);background:transparent;color:inherit;cursor:pointer}
+.tok.sel{background:var(--tint);border-bottom:2px solid var(--plum);color:var(--plum);font-weight:500}
+.tok.ok{background:var(--ok-bg);color:var(--ok);border-bottom-color:var(--ok)}
+.tok.ko{background:var(--ko-bg);color:var(--ko);border-bottom-color:var(--ko)}
+.tok.miss{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn)}
+.tok.dis{background:var(--warn-bg);color:var(--warn);border-bottom-color:var(--warn)}
+.tok:disabled{cursor:default}
+.fbl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.fbl li{padding:8px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.fbl li b{font-weight:500}
+.fbl li.ok{border-color:var(--ok)} .fbl li.ko{border-color:var(--ko)} .fbl li.miss,.fbl li.dis{border-color:var(--warn)}
+.score{font-weight:700}
+
+.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+.canvas-wrap{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:820px){.work{grid-template-columns:1fr}.canvas-wrap{position:static}}
+.canvas{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px;overflow-x:auto}
+.canvas svg{display:block;width:100%;min-width:330px;height:auto}
+svg text{font-family:var(--font)}
+.pairs{display:flex;flex-direction:column;gap:10px}
+.pair{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.pair.ok{border-color:var(--ok)} .pair.ko{border-color:var(--ko)} .pair.warn{border-color:var(--warn)}
+.pair h3 span{color:var(--muted);font-weight:400}
+select{font:inherit;font-size:15px;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);max-width:100%}
+.mults{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.mults label{display:flex;gap:6px;align-items:center}
+.mults select{font-family:var(--mono);font-size:14px}
+select.ok{border-color:var(--ok);background:var(--ok-bg)} select.ko{border-color:var(--ko);background:var(--ko-bg)} select.warn{border-color:var(--warn);background:var(--warn-bg)}
+.pfb{font-size:14px}
+.pfb b{font-weight:500}
+.v-ok{color:var(--ok)} .v-ko{color:var(--ko)} .v-warn{color:var(--warn)}
+.foot{font-size:13px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header class="narrow">
+    <div class="eyebrow">IS 30222 · Tema 3 · Modelo de objetos</div>
+    <h1>Constructor de diagramas de clases</h1>
+    <p class="intro">Del enunciado al diagrama en dos pasos. Primero aplicas la técnica de los sustantivos para encontrar las clases; después decides cómo se relacionan y con qué multiplicidades, y el diagrama se dibuja mientras eliges.</p>
+  </header>
+
+  <div class="pick" id="scen-pick" role="group" aria-label="Enunciado"></div>
+
+  <section class="card narrow" id="step1">
+    <div class="step">Paso 1 de 2 · Identificar las clases</div>
+    <p class="muted">Toca los sustantivos subrayados que deberían ser <strong>clases del dominio</strong>. Los demás pueden ser atributos, el propio sistema, detalles de implementación o cosas fuera del dominio. Si dos palabras nombran lo mismo, basta con marcar una.</p>
+    <p class="stmt" id="stmt"></p>
+    <div class="row"><button type="button" class="btn" id="check1">Corregir clases</button><button type="button" class="btn ghost" id="reset1">Borrar</button></div>
+    <div id="fb1" hidden></div>
+  </section>
+
+  <section class="card" id="step2" hidden>
+    <div class="step">Paso 2 de 2 · Relaciones y multiplicidades</div>
+    <p class="muted narrow">Partimos de las clases correctas. Para cada par decide si hay relación y de qué tipo. Si es una asociación, agregación o composición, indica también las multiplicidades (<code class="mono">*</code> equivale a 0..*).</p>
+    <div class="work">
+      <div class="pairs" id="pairs"></div>
+      <div class="canvas-wrap">
+        <div class="pick" id="view-pick" role="group" aria-label="Qué diagrama ver" hidden>
+          <button type="button" data-v="mine" aria-pressed="true">Mi modelo</button>
+          <button type="button" data-v="sol" aria-pressed="false">Solución</button>
+        </div>
+        <div class="canvas" style="margin-top:8px"><svg id="dg" viewBox="0 0 430 300" role="img" aria-label="Diagrama de clases"></svg></div>
+      </div>
+    </div>
+    <div class="row"><button type="button" class="btn" id="check2">Corregir relaciones</button><button type="button" class="btn ghost" id="reset2">Borrar</button></div>
+    <div id="fb2" class="pfb" hidden></div>
+  </section>
+
+  <p class="foot narrow">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. En análisis suele haber más de un modelo válido: las alternativas razonables se dan como aceptables. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+const TYPES={asoc:'Asociación',agr:'Agregación',comp:'Composición',gen:'Generalización',none:'Ninguna relación directa'};
+const BASEM=['1','0..1','*','1..*'];
+
+const SCEN={
+ tele:{label:'Teleconsulta rural',
+  text:'La [comarca|comarca] quiere un [servicio de teleconsulta|servicio]. Los [pacientes|Paciente] piden [citas|Cita] con un [profesional sanitario|Profesional] del [consultorio|Consultorio] de su [pueblo|pueblo]. Los profesionales pueden ser [médicos|Medico] o [enfermeros|Enfermero], y todos tienen [nombre|nombre] y [número de colegiado|colegiado]. En cada consultorio trabajan varios profesionales, y cada profesional está asignado a un solo consultorio. Cada cita es de un paciente con un profesional, y tiene [fecha|fecha], [hora|hora] y un [enlace de videollamada|enlace]. Cada paciente tiene una [historia clínica|HistoriaClinica], formada por [anotaciones|Anotacion]; cada anotación la firma un profesional. El [sistema|sistema] envía un [recordatorio|recordatorio] por [SMS|sms] antes de cada cita.',
+  tok:{
+   comarca:{c:'no',x:'Es el contexto: quien encarga el sistema, no algo que el sistema gestione.'},
+   servicio:{c:'no',x:'Es el propio sistema. No se modela como una clase del dominio.'},
+   sistema:{c:'no',x:'Es el propio sistema, no una clase del dominio.'},
+   pueblo:{c:'no',x:'Es un dato del consultorio (su localidad): un atributo, no una clase.'},
+   nombre:{c:'no',x:'Atributo de Profesional.'}, colegiado:{c:'no',x:'Atributo de Profesional.'},
+   fecha:{c:'no',x:'Atributo de Cita.'}, hora:{c:'no',x:'Atributo de Cita.'}, enlace:{c:'no',x:'Atributo de Cita.'},
+   recordatorio:{c:'dis',x:'Discutible. Si solo se envía, es una operación; si hay que guardar cuándo se envió y si llegó, sería una clase.'},
+   sms:{c:'no',x:'Es el canal de envío, un detalle de diseño o implementación, no un concepto del dominio.'}
+  },
+  classes:{Paciente:[55,40],Cita:[215,40],Consultorio:[375,40],HistoriaClinica:[55,150],Anotacion:[215,150],Profesional:[375,150],Medico:[215,265],Enfermero:[375,265]},
+  abstract:['Profesional'],
+  pairs:[
+   {a:'Paciente',b:'Cita',ans:'asoc',mA:['1'],mB:['*'],x:'Una cita es de un paciente; un paciente puede tener muchas citas o ninguna todavía. No hay todo-parte.'},
+   {a:'Profesional',b:'Cita',ans:'asoc',mA:['1'],mB:['*'],x:'Cada cita es con un profesional; un profesional atiende muchas citas.'},
+   {a:'Medico',b:'Profesional',ans:'gen',x:'"Los profesionales pueden ser médicos o enfermeros": Médico es un tipo de Profesional. Generalización hacia Profesional.'},
+   {a:'Enfermero',b:'Profesional',ans:'gen',x:'Igual que Médico: Enfermero hereda de Profesional, que reúne lo común (nombre, número de colegiado).'},
+   {a:'Profesional',b:'Consultorio',ans:'asoc',alt:['agr'],mA:['1..*','*'],mB:['1'],x:'Cada profesional está en un solo consultorio, y en un consultorio trabajan varios. La agregación (el consultorio agrupa profesionales) es aceptable; la composición no, porque el profesional no desaparece con el consultorio.'},
+   {a:'HistoriaClinica',b:'Paciente',ans:'asoc',alt:['comp'],mA:['1'],mB:['1'],x:'Uno a uno: cada paciente tiene una historia y cada historia es de un paciente. La composición es defendible si la historia no tiene sentido sin su paciente, aunque en la práctica la historia se conserva por ley.'},
+   {a:'Anotacion',b:'HistoriaClinica',ans:'comp',mA:['*'],mB:['1'],x:'La historia está "formada por" anotaciones que no existen fuera de ella: composición, con el rombo relleno en HistoriaClinica. Una historia nueva puede no tener anotaciones, de ahí el *.'},
+   {a:'Anotacion',b:'Profesional',ans:'asoc',mA:['*'],mB:['1'],x:'Cada anotación la firma un profesional; un profesional firma muchas anotaciones. Asociación.'},
+   {a:'Consultorio',b:'Cita',ans:'none',alt:['asoc'],mA:['1'],mB:['*'],x:'El consultorio de una cita ya se obtiene a través de su profesional. Una asociación directa duplicaría información y podría contradecirse; si la añades, que sea con un motivo.'}
+  ]},
+ torneo:{label:'Torneos de videojuegos',
+  text:'Una [asociación de estudiantes|asoc] organiza [torneos|Torneo] de [videojuegos|Juego]. Cada torneo es de un juego y tiene un [reglamento|regl] en PDF. Los [jugadores|Jugador] forman [equipos|Equipo] de entre 3 y 5 jugadores; cada jugador pertenece a un solo equipo, y uno de ellos es el [capitán|capitan]. Los equipos se inscriben en los torneos. Un torneo se organiza en [rondas|Ronda], y cada ronda está formada por [partidas|Partida] entre dos equipos. De cada partida se guardan el [resultado|resultado] y la [fecha|fecha]. Los torneos pueden ser de [liga|Liga] o de [eliminatoria|Eliminatoria].',
+  tok:{
+   asoc:{c:'no',x:'Es quien organiza y encarga el sistema, no un concepto que el sistema gestione.'},
+   regl:{c:'dis',x:'Discutible. Si es solo un PDF adjunto, es un atributo de Torneo; si el sistema tuviera que interpretar sus reglas, sería una clase.'},
+   capitan:{c:'no',x:'Capitán es un rol de un jugador en su equipo, no una clase nueva. Se modela como una segunda asociación entre Equipo y Jugador.'},
+   resultado:{c:'no',x:'Atributo de Partida.'}, fecha:{c:'no',x:'Atributo de Partida.'}
+  },
+  classes:{Juego:[215,40],Jugador:[375,40],Ronda:[55,150],Torneo:[215,150],Equipo:[375,150],Partida:[55,275],Liga:[165,275],Eliminatoria:[285,275]},
+  abstract:['Torneo'],
+  pairs:[
+   {a:'Torneo',b:'Juego',ans:'asoc',mA:['*'],mB:['1'],x:'Cada torneo es de un juego; un juego puede tener muchos torneos.'},
+   {a:'Jugador',b:'Equipo',role:'miembros',off:-11,ans:'agr',alt:['asoc'],mA:['3..5'],mB:['1'],extra:['3..5'],x:'El equipo agrupa jugadores que existen por su cuenta: agregación (la asociación también es aceptable). El enunciado da la multiplicidad exacta, 3..5.'},
+   {a:'Jugador',b:'Equipo',role:'capitán',off:11,ans:'asoc',mA:['1'],mB:['0..1'],x:'El capitán es un rol: una segunda asociación entre las mismas clases. Cada equipo tiene un capitán; un jugador es capitán de como mucho un equipo.'},
+   {a:'Equipo',b:'Torneo',ans:'asoc',mA:['*','1..*'],mB:['*'],x:'Los equipos se inscriben en torneos: muchos a muchos. Un equipo no es parte de un torneo, así que nada de rombos.'},
+   {a:'Ronda',b:'Torneo',ans:'comp',mA:['1..*','*'],mB:['1'],x:'Un torneo "se organiza en" rondas que no existen fuera de él: composición, rombo relleno en Torneo.'},
+   {a:'Partida',b:'Ronda',ans:'comp',mA:['1..*','*'],mB:['1'],x:'Cada ronda "está formada por" partidas exclusivas suyas: composición, rombo relleno en Ronda.'},
+   {a:'Partida',b:'Equipo',ans:'asoc',mA:['*'],mB:['2'],extra:['2'],x:'Cada partida enfrenta exactamente a dos equipos; un equipo juega muchas partidas.'},
+   {a:'Liga',b:'Torneo',ans:'gen',x:'Un torneo de liga es un tipo de torneo: generalización hacia Torneo.'},
+   {a:'Eliminatoria',b:'Torneo',ans:'gen',x:'Igual que Liga: Eliminatoria hereda de Torneo.'},
+   {a:'Jugador',b:'Partida',ans:'none',mA:['*'],mB:['*'],x:'Qué jugadores juegan una partida se deduce de sus equipos. Una asociación directa sería redundante.'}
+  ]}
+};
+
+let scen='tele', sel=new Set(), choice=[], checked1=false, checked2=false, view='mine';
+const $=id=>document.getElementById(id);
+
+document.getElementById('scen-pick').innerHTML=Object.entries(SCEN).map(([k,s])=>`<button type="button" data-k="${k}" aria-pressed="${k===scen}">${s.label}</button>`).join('');
+document.querySelectorAll('#scen-pick button').forEach(b=>b.addEventListener('click',()=>{
+  scen=b.dataset.k; document.querySelectorAll('#scen-pick button').forEach(x=>x.setAttribute('aria-pressed',x===b)); init();
+}));
+
+/* ---------- Paso 1 ---------- */
+function tokInfo(key){ const s=SCEN[scen]; return s.classes[key]?{c:'cls'}:s.tok[key]; }
+function renderStmt(){
+  const s=SCEN[scen]; let i=0;
+  $('stmt').innerHTML=s.text.replace(/\[([^|\]]+)\|([^\]]+)\]/g,(m,word,key)=>{
+    const id='tok-'+(i++); let cls='tok';
+    if(checked1){ const inf=tokInfo(key), on=sel.has(id);
+      if(inf.c==='cls'){ const found=[...sel].some(t=>document.getElementById(t)?.dataset.key===key)||classFound(key); cls+= on?' ok':(classFound(key)?'':' miss'); }
+      else if(inf.c==='dis') cls+= on?' dis':'';
+      else cls+= on?' ko':'';
+    } else if(sel.has(id)) cls+=' sel';
+    return `<button type="button" class="${cls}" id="${id}" data-key="${key}" aria-pressed="${sel.has(id)}"${checked1?' disabled':''}>${word}</button>`;
+  });
+  $('stmt').querySelectorAll('.tok').forEach(b=>b.addEventListener('click',()=>{ sel.has(b.id)?sel.delete(b.id):sel.add(b.id); renderStmt(); }));
+}
+let selKeys=new Set();
+function classFound(key){ return selKeys.has(key); }
+$('check1').addEventListener('click',()=>{
+  const s=SCEN[scen];
+  selKeys=new Set([...sel].map(id=>document.getElementById(id)).filter(Boolean).map(el=>el.dataset.key));
+  checked1=true; renderStmt();
+  const cls=Object.keys(s.classes), found=cls.filter(c=>selKeys.has(c));
+  const wrong=[...selKeys].filter(k=>!s.classes[k]&&s.tok[k].c==='no');
+  const dis=Object.keys(s.tok).filter(k=>s.tok[k].c==='dis');
+  const missing=cls.filter(c=>!selKeys.has(c));
+  if(window.isMetric) isMetric('t3','clases-'+scen,'sustantivos',missing.length===0&&wrong.length===0,`faltan-${missing.length}-sobran-${wrong.length}`);
+  const items=[];
+  wrong.forEach(k=>items.push(`<li class="ko"><b>${wordOf(k)}</b>: ${s.tok[k].x}</li>`));
+  missing.forEach(c=>items.push(`<li class="miss"><b>Faltaba ${c}</b>, que es una clase del dominio.</li>`));
+  dis.forEach(k=>items.push(`<li class="dis"><b>${wordOf(k)}</b>: ${s.tok[k].x}</li>`));
+  Object.keys(s.tok).filter(k=>s.tok[k].c==='no'&&!selKeys.has(k)).forEach(k=>items.push(`<li class="ok"><b>${wordOf(k)}</b>, bien descartado. ${s.tok[k].x}</li>`));
+  $('fb1').innerHTML=`<p class="score">${found.length} de ${cls.length} clases encontradas${wrong.length?`, ${wrong.length} ${wrong.length===1?'sobra':'sobran'}`:''}.</p>
+    <p class="muted" style="margin-bottom:10px">Clases del modelo: ${cls.join(', ')}.</p>
+    <ul class="fbl">${items.join('')}</ul>
+    <div class="row" style="margin-top:12px"><button type="button" class="btn" id="go2">Seguir con las relaciones</button></div>`;
+  $('fb1').hidden=false;
+  $('go2').addEventListener('click',()=>{ $('step2').hidden=false; $('step2').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
+});
+function wordOf(key){ const m=SCEN[scen].text.match(new RegExp('\\[([^|\\]]+)\\|'+key+'\\]')); return m?m[1].charAt(0).toUpperCase()+m[1].slice(1):key; }
+$('reset1').addEventListener('click',()=>{ sel.clear(); selKeys.clear(); checked1=false; $('fb1').hidden=true; renderStmt(); });
+
+/* ---------- Paso 2 ---------- */
+function multOpts(p){ return BASEM.concat(p.extra||[]); }
+function renderPairs(){
+  const s=SCEN[scen];
+  $('pairs').innerHTML=s.pairs.map((p,i)=>{
+    const c=choice[i]; const showM=['asoc','agr','comp'].includes(c.t);
+    const tLabel={asoc:'Asociación',agr:`Agregación (${p.b} agrupa ${p.a})`,comp:`Composición (${p.a} es parte exclusiva de ${p.b})`,gen:`Generalización (${p.a} es un tipo de ${p.b})`,none:'Ninguna relación directa'};
+    return `<div class="pair" id="pair-${i}">
+      <h3>${p.a} y ${p.b}${p.role?` <span>· como ${p.role}</span>`:''}</h3>
+      <select id="t-${i}" data-i="${i}" aria-label="Tipo de relación entre ${p.a} y ${p.b}"><option value="">Elige el tipo de relación…</option>${Object.keys(TYPES).map(k=>`<option value="${k}"${c.t===k?' selected':''}>${tLabel[k]}</option>`).join('')}</select>
+      <div class="mults" ${showM?'':'hidden'}>
+        <label for="ma-${i}">Por cada ${p.b}: <select id="ma-${i}" data-i="${i}" data-e="a"><option value="">?</option>${multOpts(p).map(m=>`<option${c.a===m?' selected':''}>${m}</option>`).join('')}</select> ${p.a}</label>
+        <label for="mb-${i}">Por cada ${p.a}: <select id="mb-${i}" data-i="${i}" data-e="b"><option value="">?</option>${multOpts(p).map(m=>`<option${c.b===m?' selected':''}>${m}</option>`).join('')}</select> ${p.b}</label>
+      </div>
+      <div class="pfb" id="pf-${i}" hidden></div></div>`;
+  }).join('');
+  $('pairs').querySelectorAll('select').forEach(el=>el.addEventListener('change',()=>{
+    const i=+el.dataset.i; if(el.id.startsWith('t-')){ choice[i].t=el.value; el.closest('.pair').querySelector('.mults').hidden=!['asoc','agr','comp'].includes(el.value); }
+    else choice[i][el.dataset.e]=el.value;
+    if(checked2) uncheck2(); drawDiagram();
+  }));
+}
+function uncheck2(){ checked2=false; $('fb2').hidden=true; $('view-pick').hidden=true; view='mine'; setView();
+  document.querySelectorAll('.pair').forEach(p=>p.classList.remove('ok','ko','warn'));
+  document.querySelectorAll('.pairs select').forEach(s=>s.classList.remove('ok','ko','warn'));
+  document.querySelectorAll('.pairs .pfb').forEach(f=>f.hidden=true); }
+
+/* ---------- Diagrama ---------- */
+const BW=104, BH=34;
+function clip(c,tx,ty){ const dx=tx-c[0], dy=ty-c[1]; if(!dx&&!dy) return [c[0],c[1]];
+  const sx=dx?(BW/2)/Math.abs(dx):Infinity, sy=dy?(BH/2)/Math.abs(dy):Infinity, s=Math.min(sx,sy); return [c[0]+dx*s,c[1]+dy*s]; }
+const f1=x=>x.toFixed(1);
+function edge(p,rel){
+  const s=SCEN[scen], A=s.classes[p.a], B=s.classes[p.b];
+  const dx=B[0]-A[0], dy=B[1]-A[1], L=Math.hypot(dx,dy), u=[dx/L,dy/L], n=[-u[1],u[0]], o=p.off||0;
+  const a0=[A[0]+n[0]*o,A[1]+n[1]*o], b0=[B[0]+n[0]*o,B[1]+n[1]*o];
+  const s1=clip(a0,b0[0],b0[1]), e1=clip(b0,a0[0],a0[1]);
+  const col='var(--fg)'; let out='', end=e1;
+  if(rel.t==='gen'){ const bk=[e1[0]-u[0]*13,e1[1]-u[1]*13]; end=bk;
+    out+=`<polygon points="${f1(e1[0])},${f1(e1[1])} ${f1(bk[0]+n[0]*7)},${f1(bk[1]+n[1]*7)} ${f1(bk[0]-n[0]*7)},${f1(bk[1]-n[1]*7)}" fill="var(--surface)" stroke="${col}" stroke-width="1.3"/>`; }
+  if(rel.t==='agr'||rel.t==='comp'){ const m=[e1[0]-u[0]*10,e1[1]-u[1]*10], bk=[e1[0]-u[0]*20,e1[1]-u[1]*20]; end=bk;
+    out+=`<polygon points="${f1(e1[0])},${f1(e1[1])} ${f1(m[0]+n[0]*6)},${f1(m[1]+n[1]*6)} ${f1(bk[0])},${f1(bk[1])} ${f1(m[0]-n[0]*6)},${f1(m[1]-n[1]*6)}" fill="${rel.t==='comp'?col:'var(--surface)'}" stroke="${col}" stroke-width="1.3"/>`; }
+  let line=`<line x1="${f1(s1[0])}" y1="${f1(s1[1])}" x2="${f1(end[0])}" y2="${f1(end[1])}" stroke="${col}" stroke-width="1.3"/>`;
+  const side=o<0?-1:1, bSide=o?side:-side;
+  const lab=(pt,dir,txt)=>{ const q=[pt[0]+dir[0]*(rel.t==='agr'||rel.t==='comp'?28:16)+n[0]*9*bSide, pt[1]+dir[1]*(rel.t==='agr'||rel.t==='comp'?28:16)+n[1]*9*bSide+4];
+    return `<text x="${f1(q[0])}" y="${f1(q[1])}" text-anchor="middle" font-size="10.5" fill="var(--plum)" class="mono" paint-order="stroke" stroke="var(--bg)" stroke-width="3">${txt}</text>`; };
+  if(rel.t!=='gen'){
+    if(rel.a) out+=`<text x="${f1(s1[0]+u[0]*16+n[0]*9*side)}" y="${f1(s1[1]+u[1]*16+n[1]*9*side+4)}" text-anchor="middle" font-size="10.5" fill="var(--plum)" class="mono" paint-order="stroke" stroke="var(--bg)" stroke-width="3">${rel.a}</text>`;
+    if(rel.b) out+=lab(e1,[-u[0],-u[1]],rel.b);
+  }
+  if(p.role){ const mx=(s1[0]+e1[0])/2, my=(s1[1]+e1[1])/2;
+    out+=`<text x="${f1(mx+n[0]*12*side+(side>0?6:-6))}" y="${f1(my+4)}" text-anchor="${side>0?'start':'end'}" font-size="10" fill="var(--muted)" paint-order="stroke" stroke="var(--bg)" stroke-width="3">${p.role}</text>`; }
+  return line+out;
+}
+function drawDiagram(){
+  const s=SCEN[scen]; let out='';
+  s.pairs.forEach((p,i)=>{
+    let rel;
+    if(view==='sol') rel={t:p.ans,a:p.mA?p.mA[0]:'',b:p.mB?p.mB[0]:''};
+    else rel=choice[i];
+    if(rel.t && rel.t!=='none') out+=edge(p,rel);
+  });
+  Object.entries(s.classes).forEach(([k,c])=>{
+    const it=s.abstract.includes(k)?' font-style="italic"':'';
+    out+=`<rect x="${c[0]-BW/2}" y="${c[1]-BH/2}" width="${BW}" height="${BH}" rx="2" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.4"/>
+      <text x="${c[0]}" y="${c[1]+4.5}" text-anchor="middle" font-size="12" font-weight="500"${it} fill="var(--fg)">${k}</text>`;
+  });
+  $('dg').innerHTML=out;
+}
+function setView(){ if(view==='sol' && window.isHelp) isHelp('ver-solucion-'+scen); document.querySelectorAll('#view-pick button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===view)); drawDiagram(); }
+document.querySelectorAll('#view-pick button').forEach(b=>b.addEventListener('click',()=>{view=b.dataset.v;setView();}));
+
+$('check2').addEventListener('click',()=>{
+  const s=SCEN[scen]; let tOk=0, mOk=0, mTot=0, pend=0;
+  s.pairs.forEach((p,i)=>{
+    const c=choice[i], card=$('pair-'+i), tSel=$('t-'+i), fb=$('pf-'+i);
+    card.classList.remove('ok','ko','warn');
+    if(!c.t){ pend++; fb.hidden=false; fb.innerHTML='<span class="v-warn"><b>Sin responder.</b></span> '+p.x; card.classList.add('warn'); return; }
+    const right=c.t===p.ans, alt=(p.alt||[]).includes(c.t);
+    let v= right?['ok','Correcto']: alt?['warn',`Aceptable. Lo más preciso: ${TYPES[p.ans]}`]:['ko',`No. Es ${TYPES[p.ans]}`];
+    if(right||alt) tOk++;
+    if(window.isMetric) isMetric('t3','clases-'+scen,'par-'+String(i+1).padStart(2,'0'),right||alt,c.t);
+    tSel.className=v[0];
+    let mtxt='';
+    const needsM=['asoc','agr','comp'].includes(c.t) && p.mA && p.ans!=='gen';
+    if(needsM){ mTot+=2;
+      const okA=p.mA.includes(c.a), okB=p.mB.includes(c.b);
+      $('ma-'+i).className=okA?'ok':'ko'; $('mb-'+i).className=okB?'ok':'ko';
+      if(okA) mOk++; if(okB) mOk++;
+      if(!okA||!okB) mtxt=` <b>Multiplicidades esperadas</b>: por cada ${p.b}, ${p.mA.join(' o ')} ${p.a}; por cada ${p.a}, ${p.mB.join(' o ')} ${p.b}.`;
+      if(right&&(!okA||!okB)) v=['warn','Tipo correcto, revisa las multiplicidades'];
+    }
+    card.classList.add(v[0]);
+    fb.innerHTML=`<span class="v-${v[0]}"><b>${v[1]}.</b></span> ${p.x}${mtxt}`; fb.hidden=false; if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t3','clases-'+scen,'par-'+String(i+1).padStart(2,'0')));
+  });
+  checked2=true;
+  $('fb2').innerHTML=`<p class="score">Tipos de relación: ${tOk} de ${s.pairs.length}${mTot?` · Multiplicidades: ${mOk} de ${mTot}`:''}${pend?` · ${pend} sin responder`:''}.</p><p class="muted">Compara tu modelo con la solución con los botones sobre el diagrama.</p>`;
+  $('fb2').hidden=false; $('view-pick').hidden=false;
+});
+$('reset2').addEventListener('click',()=>{ choice=SCEN[scen].pairs.map(()=>({t:'',a:'',b:''})); uncheck2(); renderPairs(); drawDiagram(); });
+
+function init(){
+  sel.clear(); selKeys.clear(); checked1=false; checked2=false; view='mine';
+  choice=SCEN[scen].pairs.map(()=>({t:'',a:'',b:''}));
+  $('fb1').hidden=true; $('step2').hidden=true; $('fb2').hidden=true; $('view-pick').hidden=true;
+  renderStmt(); renderPairs(); setView();
+}
+init();
+</script>
+</body>
+</html>

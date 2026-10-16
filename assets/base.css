@@ -1,0 +1,30 @@
+/* Base común de la web: fuentes alojadas en el propio sitio, reset mínimo, navegación y pie */
+@font-face{font-family:'Roboto';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/roboto-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Roboto';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/roboto-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Roboto';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Roboto';font-style:italic;font-weight:400;font-display:swap;src:url(fonts/roboto-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'Roboto';font-style:italic;font-weight:500;font-display:swap;src:url(fonts/roboto-latin-500-italic.woff2) format('woff2')}
+@font-face{font-family:'Roboto Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/roboto-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Roboto Mono';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/roboto-mono-latin-500-normal.woff2) format('woff2')}
+
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+nav.site{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+nav.site a{color:var(--plum);text-decoration:none;font-weight:500}
+nav.site a:hover{text-decoration:underline}
+nav.site a:focus-visible{outline:2px solid var(--plum);outline-offset:2px;border-radius:4px}
+nav.site span{color:var(--muted)}
+
+footer.site{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:4px}
+footer.site p{margin:0;max-width:70ch}
+footer.site a{color:var(--plum)}
+
+.rep-wrap{margin:0}
+button.rep{font:inherit;font-size:13px;background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+button.rep:hover{color:var(--plum)}
+button.rep:focus-visible{outline:2px solid var(--plum);outline-offset:2px;border-radius:4px}
+.rep-note{font-size:13px;color:var(--muted)}

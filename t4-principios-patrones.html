@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Principios y patrones de diseño · IS 30222</title>
+<meta name="description" content="Detectar principios de diseño incumplidos, elegir patrones y ver el principio de Liskov en marcha.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: una columna con tres pestañas; dos son fichas de ejercicio con código y la tercera es una demo ejecutable de Liskov */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:15px;margin:0;font-weight:500}
+.intro,.muted{color:var(--muted);margin:0;max-width:62ch}
+code{font-family:var(--mono);font-size:.9em;background:var(--tint);padding:1px 5px;border-radius:4px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-size:15px;padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--plum);border-bottom-color:var(--plum);font-weight:500}
+.panel{display:flex;flex-direction:column;gap:16px}
+.progress{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--plum);width:0;transition:width .25s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.scen{font-size:17px;margin:0;text-wrap:pretty}
+pre.code{margin:0;font-family:var(--mono);font-size:13.5px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto}
+.q{font-size:14px;color:var(--muted);margin:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.opt{font:inherit;font-size:15px;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.opt b{font-family:var(--mono);font-weight:500;color:var(--plum);margin-right:6px}
+.opt:hover:not(:disabled){border-color:var(--plum)}
+.opt:disabled{cursor:default}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)} .opt.ok b{color:inherit}
+.opt.ko{background:var(--ko-bg);border-color:var(--ko);color:var(--ko)} .opt.ko b{color:inherit}
+.fb{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.verdict{font-weight:700}
+.verdict.ok{color:var(--ok)} .verdict.ko{color:var(--ko)}
+.exp{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+button:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.big{font-size:44px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums;line-height:1}
+.fails{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fails li{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.fails b{color:var(--plum);font-weight:500}
+
+table.trace{border-collapse:collapse;font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums;width:100%}
+.trace th,.trace td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left}
+.trace th{font-family:var(--font);font-weight:500;color:var(--muted);font-size:13px}
+.trace td.chg{color:var(--plum);font-weight:500}
+.trace-wrap{overflow-x:auto}
+.result{padding:12px 14px;border-radius:10px;font-size:15px}
+.result.ok{background:var(--ok-bg);color:var(--ok)} .result.ko{background:var(--ko-bg);color:var(--ko)}
+.foot{font-size:13px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Tema 4 · Diseño de objetos</div>
+    <h1>Principios y patrones de diseño</h1>
+    <p class="intro">Un diseño puede funcionar y aun así ser un desastre de mantener. Aquí practicas a detectar qué principio se incumple, a elegir el patrón que resuelve un problema (o ninguno) y a ver por qué Liskov importa.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Bloque">
+    <button role="tab" id="tab-pri" aria-controls="p-pri" aria-selected="true">¿Qué principio?</button>
+    <button role="tab" id="tab-pat" aria-controls="p-pat" aria-selected="false">¿Qué patrón?</button>
+    <button role="tab" id="tab-lsp" aria-controls="p-lsp" aria-selected="false">Liskov en marcha</button>
+  </div>
+
+  <section class="panel" id="p-pri" role="tabpanel" aria-labelledby="tab-pri"></section>
+  <section class="panel" id="p-pat" role="tabpanel" aria-labelledby="tab-pat" hidden></section>
+
+  <section class="panel" id="p-lsp" role="tabpanel" aria-labelledby="tab-lsp" hidden>
+    <div class="card">
+      <h2>¿Un cuadrado es un rectángulo?</h2>
+      <p class="muted">En geometría sí. En diseño orientado a objetos, depende del contrato. El cliente de abajo fue escrito pensando en Rectangulo. Ejecútalo con cada objeto.</p>
+<pre class="code">class Rectangulo {
+  void setAncho(int a) { ancho = a; }
+  void setAlto(int h)  { alto = h; }
+  int area()           { return ancho * alto; }
+}
+class Cuadrado extends Rectangulo {
+  void setAncho(int a) { ancho = a; alto = a; }
+  void setAlto(int h)  { ancho = h; alto = h; }
+}
+
+// Cliente: confía en el contrato de Rectangulo
+void ajustar(Rectangulo r) {
+  r.setAncho(5);
+  r.setAlto(4);
+  assert r.area() == 20;
+}</pre>
+      <div class="row">
+        <button type="button" class="btn" id="runR">ajustar(new Rectangulo())</button>
+        <button type="button" class="btn" id="runC">ajustar(new Cuadrado())</button>
+      </div>
+      <div id="lspout" hidden></div>
+    </div>
+    <div class="card" id="lspwhy" hidden>
+      <h3>Qué ha pasado</h3>
+      <p class="exp">El contrato de <code>setAncho</code> en Rectangulo dice, sin escribirlo, que solo cambia el ancho. Cuadrado lo rompe: al fijar el ancho también cambia el alto. El cliente no ha hecho nada mal y aun así falla con una subclase. Eso es justo lo que prohíbe el principio de sustitución de Liskov: <strong>una subclase debe poder usarse donde se espera su clase base sin que el cliente note la diferencia</strong>.</p>
+      <p class="exp">Arreglos habituales: no hacer que Cuadrado herede de Rectangulo, sino que ambos implementen una interfaz <code>Figura</code> con <code>area()</code>; o hacer las figuras inmutables (sin setters), de modo que no haya contrato que romper.</p>
+    </div>
+  </section>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Los aciertos y fallos se cuentan de forma anónima y agregada, sin cookies ni datos personales.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+const TABS=['pri','pat','lsp'];
+function showTab(t){ TABS.forEach(x=>{document.getElementById('tab-'+x).setAttribute('aria-selected',x===t);document.getElementById('p-'+x).hidden=x!==t;}); }
+TABS.forEach(t=>document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t)));
+{ const h=(location.hash||'').slice(1); if(TABS.includes(h)) showTab(h); }
+
+const PRI_OPTS=[['S','Responsabilidad única'],['O','Abierto/cerrado'],['L','Sustitución de Liskov'],['I','Segregación de interfaces'],['D','Inversión de dependencias'],['DRY','No te repitas']];
+const PRI=[
+ {ans:'S',txt:'La clase del informe de una sesión calcula las métricas, maqueta el PDF y lo envía por correo.',
+  code:`class InformeSesion {
+  double calcularCalorias(Sesion s) { … }
+  byte[] generarPdf(Sesion s)        { … }
+  void enviarPorEmail(byte[] pdf, String dir) { … }
+}`,
+  exp:'Tiene tres razones para cambiar: las fórmulas, el formato y el canal de envío. Se separa en tres clases con una responsabilidad cada una.'},
+ {ans:'O',txt:'Cada vez que la tienda añade un tipo de envío hay que abrir y modificar este método.',
+  code:`double precioEnvio(Pedido p) {
+  if (p.tipo == ESTANDAR)      return 3.5;
+  else if (p.tipo == URGENTE)  return 7.0;
+  else if (p.tipo == TIENDA)   return 0;
+}`,
+  exp:'Debería estar abierto a extensión y cerrado a modificación: cada tipo de envío como una clase que implementa una interfaz común. Añadir un tipo es añadir una clase, sin tocar el código que ya funciona.'},
+ {ans:'L',txt:'Todo código que recibe un Ave y llama a volar() revienta si le pasan un pingüino.',
+  code:`class Ave { void volar() { … } }
+
+class Pinguino extends Ave {
+  void volar() {
+    throw new UnsupportedOperationException();
+  }
+}`,
+  exp:'La subclase no puede sustituir a la base sin romper al cliente. El fallo está en la jerarquía: volar() no es común a todas las aves.'},
+ {ans:'I',txt:'Una impresora sencilla se ve obligada a implementar operaciones que no tiene.',
+  code:`interface Dispositivo {
+  void imprimir(Doc d);
+  void escanear(Doc d);
+  void enviarFax(Doc d);
+}
+class ImpresoraBasica implements Dispositivo {
+  void escanear(Doc d)  { /* no hace nada */ }
+  void enviarFax(Doc d) { /* no hace nada */ }
+  …
+}`,
+  exp:'Mejor varias interfaces pequeñas (Imprimible, Escaneable, Fax) y que cada clase implemente solo las que le corresponden.'},
+ {ans:'D',txt:'La lógica de reservas crea por su cuenta el acceso a una base de datos concreta.',
+  code:`class ServicioReservas {
+  private MySqlReservas repo = new MySqlReservas();
+  …
+}`,
+  exp:'Depende de un detalle concreto. Debería depender de una abstracción (RepositorioReservas) que se le pasa desde fuera; así se cambia de base de datos, o se prueba con un doble, sin tocar el servicio.'},
+ {ans:'DRY',txt:'La misma validación del formato del DNI está copiada en Paciente, Profesional y Administrativo.',
+  exp:'Si cambia la regla hay que acordarse de cambiarla en tres sitios, y tarde o temprano alguno se queda atrás. Se extrae a un único lugar, por ejemplo una clase Dni.'},
+ {ans:'D',txt:'El controlador de alertas crea el envío de SMS dentro de su método. Para probarlo hay que mandar SMS de verdad.',
+  code:`class ControladorAlertas {
+  void avisar(Alerta a) {
+    SmsSender s = new SmsSender();
+    s.enviar(a.telefono, a.texto);
+  }
+}`,
+  exp:'Acoplado a una clase concreta. Si recibe un Notificador (interfaz) por el constructor, en las pruebas se le pasa uno falso y en producción el de SMS.'},
+ {ans:'S',txt:'La clase Torneo gestiona las inscripciones, calcula la clasificación y además guarda y lee sus datos de un fichero.',
+  exp:'Mezcla lógica de negocio con persistencia. La persistencia va a otra clase (un repositorio); Torneo se queda con las reglas del torneo.'},
+ {ans:'I',txt:'La interfaz Usuario tiene 25 métodos (pagos, torneos, administración) y la clase Jugador solo usa 6 de verdad; el resto los deja vacíos.',
+  exp:'Interfaz demasiado gorda. Se parte por roles (Pagador, Participante, Administrador) y cada clase implementa las que necesita.'},
+ {ans:'O',txt:'Para añadir el formato CSV al exportador hay que meter otra rama en este método.',
+  code:`void exportar(Datos d, String formato) {
+  if (formato.equals("pdf"))       { … }
+  else if (formato.equals("xlsx")) { … }
+  // y ahora otro else if para "csv"
+}`,
+  exp:'Cada formato nuevo obliga a modificar código existente. Con una interfaz Exportador y una clase por formato, añadir CSV es añadir una clase.'}
+];
+
+const PAT_OPTS=[['Observer','Observer'],['Strategy','Strategy'],['State','State'],['—','Ninguno, no hace falta']];
+const PAT=[
+ {ans:'Observer',txt:'Cuando cambia la lectura de un sensor de humedad, se tienen que actualizar el panel del agricultor, el registro histórico y el módulo de alertas. Mañana puede haber más interesados.',
+  exp:'Un sujeto (el sensor) notifica a varios observadores suscritos sin conocerlos en concreto. Añadir un interesado no obliga a tocar el sensor.'},
+ {ans:'Strategy',txt:'El precio del envío se calcula de forma distinta si es estándar, urgente o recogida en tienda, y el cliente lo elige al pagar.',
+  exp:'Algoritmos intercambiables detrás de una interfaz común, elegidos en tiempo de ejecución. Lo decide quien usa el objeto, no el propio objeto.'},
+ {ans:'State',txt:'Un torneo responde distinto a inscribirEquipo() según esté abierto, en curso o cerrado, y el código está lleno de if (estado == …).',
+  exp:'El comportamiento depende del estado interno del objeto y cambia cuando cambia el estado. Cada estado es una clase que sabe responder a las acciones. Es la traducción a diseño de un diagrama de estados.'},
+ {ans:'Strategy',txt:'El usuario puede ordenar los resultados de búsqueda por distancia, por valoración o por precio.',
+  exp:'Tres formas de ordenar intercambiables elegidas desde fuera: Strategy. No es State, porque no hay un ciclo de vida del objeto que vaya cambiando solo.'},
+ {ans:'Observer',txt:'Cuando un canal publica un vídeo, todos sus suscriptores reciben un aviso.',
+  exp:'El caso de libro: un sujeto, muchos suscriptores que se dan de alta y de baja.'},
+ {ans:'State',txt:'El botón de un reproductor hace cosas distintas si está parado, reproduciendo o en pausa.',
+  exp:'La misma acción (pulsar) con resultado distinto según el estado actual, y el propio objeto pasa de un estado a otro: State.'},
+ {ans:'—',txt:'Una clase de utilidades tiene una función que convierte grados Celsius a Fahrenheit. Alguien propone aplicarle un patrón para que el diseño quede más profesional.',
+  exp:'No hay problema de diseño que resolver. Un patrón aplicado sin necesidad añade clases y complejidad sin beneficio (KISS, YAGNI).'}
+];
+
+function makeQuiz(root, items, opts, label, mname){
+  let order=[], idx=0, score=0, fails=[], answered=false, retrying=false;
+  const name=Object.fromEntries(opts);
+  root.innerHTML=`<div><div class="progress"><span class="pos"></span><span class="sc"></span></div><div class="bar" aria-hidden="true"><i></i></div></div><section class="card" aria-live="polite"></section>`;
+  const card=root.querySelector('.card');
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  function prog(){ const done=Math.min(idx+(answered?1:0),order.length);
+    root.querySelector('.pos').textContent= idx<order.length?`Ejercicio ${idx+1} de ${order.length}`:`${order.length} de ${order.length}`;
+    root.querySelector('.sc').textContent=`Aciertos: ${score}`;
+    root.querySelector('.bar i').style.width=(100*done/order.length)+'%'; }
+  function start(list){ retrying=!!list; order=shuffle((list||items).slice()); idx=0; score=0; fails=[]; render(); }
+  function render(){ answered=false; if(idx>=order.length) return summary(); const it=order[idx];
+    card.innerHTML=`<p class="scen">${it.txt}</p>${it.code?`<pre class="code">${it.code.replace(/</g,'&lt;')}</pre>`:''}
+      <p class="q">${label}</p>
+      <div class="opts">${opts.map(([k,n])=>`<button type="button" class="opt" data-k="${k}">${k.length<=3&&k!=='—'?`<b>${k}</b>`:''}${n}</button>`).join('')}</div>
+      <div class="fb" hidden></div>`;
+    card.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.k))); prog(); if(window.isMark) isMark(); }
+  function answer(k){ if(answered) return; answered=true; const it=order[idx], ok=k===it.ans;
+    if(ok) score++; else fails.push({it,k});
+    { const iid=String(items.indexOf(it)+1).padStart(2,'0');
+      if(retrying){ if(window.isRetry) isRetry('t4',mname,iid,ok); }
+      else if(window.isMetric) isMetric('t4',mname,iid,ok,ok?null:k); }
+    card.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; if(b.dataset.k===it.ans) b.classList.add('ok'); else if(b.dataset.k===k) b.classList.add('ko'); });
+    const fb=card.querySelector('.fb'); const last=idx===order.length-1;
+    fb.innerHTML=`<div class="verdict ${ok?'ok':'ko'}">${ok?'Correcto':`No. Es ${name[it.ans]}`}</div><p class="exp">${it.exp}</p><div class="row"><button type="button" class="btn">${last?'Ver resultado':'Siguiente'}</button></div>`;
+    fb.hidden=false; prog(); if(window.isReportLink) fb.insertAdjacentHTML('beforeend',isReportLink('t4',mname,String(items.indexOf(it)+1).padStart(2,'0')));
+    const nx=fb.querySelector('.btn'); nx.addEventListener('click',()=>{idx++;render();}); nx.focus({preventScroll:true}); }
+  function summary(){ prog(); if(!retrying && window.isEnd) isEnd('t4',mname,score/order.length);
+    card.innerHTML=`<div><span class="big">${score}</span><span class="muted"> de ${order.length}</span></div>
+      ${fails.length?`<ul class="fails">${fails.map(f=>`<li>${f.it.txt}<br>Elegiste ${name[f.k]}; era <b>${name[f.it.ans]}</b>.</li>`).join('')}</ul>`:'<p class="exp">Sin fallos. Repite para verlos en otro orden.</p>'}
+      <div class="row">${fails.length?'<button type="button" class="btn" data-a="retry">Repetir los fallos</button>':''}<button type="button" class="btn ${fails.length?'ghost':''}" data-a="again">Empezar de nuevo</button></div>`;
+    card.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click',()=>b.dataset.a==='retry'?start(fails.map(f=>f.it)):start()));
+  }
+  start();
+}
+makeQuiz(document.getElementById('p-pri'),PRI,PRI_OPTS,'¿Qué principio se incumple?','principios');
+makeQuiz(document.getElementById('p-pat'),PAT,PAT_OPTS,'¿Qué patrón lo resuelve mejor?','patrones');
+
+/* ---------- Liskov ---------- */
+function run(isSq){
+  let ancho=0, alto=0; const rows=[];
+  const step=(op,fn)=>{ const a0=ancho,h0=alto; fn(); rows.push([op,ancho,alto,a0!==ancho,h0!==alto]); };
+  step('r.setAncho(5)',()=>{ ancho=5; if(isSq) alto=5; });
+  step('r.setAlto(4)',()=>{ alto=4; if(isSq) ancho=4; });
+  const area=ancho*alto, ok=area===20;
+  const out=document.getElementById('lspout');
+  out.innerHTML=`<div class="trace-wrap"><table class="trace"><thead><tr><th>Paso</th><th>ancho</th><th>alto</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${r[0]}</td><td class="${r[3]?'chg':''}">${r[1]}</td><td class="${r[4]?'chg':''}">${r[2]}</td></tr>`).join('')}
+    <tr><td>r.area()</td><td colspan="2">${area}</td></tr></tbody></table></div>
+    <div class="result ${ok?'ok':'ko'}">${ok?'assert area() == 20 se cumple con un Rectangulo.':`assert area() == 20 falla: el área es ${area}. setAlto(4) ha cambiado también el ancho.`}</div>`;
+  out.hidden=false;
+  if(!ok) document.getElementById('lspwhy').hidden=false;
+}
+document.getElementById('runR').addEventListener('click',()=>run(false));
+document.getElementById('runC').addEventListener('click',()=>run(true));
+</script>
+</body>
+</html>

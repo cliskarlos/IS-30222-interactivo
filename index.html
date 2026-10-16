@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ingeniería del Software · Material interactivo</title>
+<meta name="description" content="Ejercicios interactivos y autocorregibles de Ingeniería del Software (30222): requisitos, modelado UML, diseño y pruebas. Grado en Ingeniería Informática, EUPT, Universidad de Zaragoza.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: portada en una columna; los recursos se ordenan por tema siguiendo el ciclo de vida, de requisitos a pruebas */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137; color-scheme:dark}}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding-block:36px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:36px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(32px,7vw,48px);line-height:1.05;margin:8px 0 12px;font-weight:700;text-wrap:balance}
+h2{font-size:22px;margin:0;text-wrap:balance}
+h3{font-size:17px;margin:0;font-weight:500}
+.lead{font-size:18px;color:var(--muted);margin:0;max-width:62ch}
+.lead strong{color:var(--fg);font-weight:500}
+.tema{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;border-top:1px solid var(--line);padding-top:20px}
+@media (max-width:640px){.tema{grid-template-columns:1fr;gap:10px}}
+.tema-h .n{font-family:var(--mono);font-size:13px;color:var(--plum);font-weight:500}
+.tema-h h2{font-size:18px;margin-top:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+a.res{display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:inherit;text-decoration:none;transition:border-color .15s}
+a.res:hover{border-color:var(--plum)}
+a.res:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+a.res p{margin:0;font-size:14px;color:var(--muted)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tags span{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--tint);color:var(--plum)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.how p{margin:4px 0 0;font-size:15px;color:var(--muted)}
+.credits{display:flex;flex-direction:column;gap:12px;font-size:15px}
+.credits p{margin:0;max-width:70ch}
+table.log{border-collapse:collapse;font-size:14px;width:100%}
+.log th,.log td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.log th{font-weight:500;color:var(--muted);font-size:13px}
+.log td:first-child{font-family:var(--mono);color:var(--plum);white-space:nowrap}
+.log td:nth-child(2){white-space:nowrap;color:var(--muted)}
+@media (max-width:480px){.log td:nth-child(2){white-space:normal}}
+.cite{font-family:var(--mono);font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;margin:0}
+@media (prefers-reduced-motion:reduce){a.res{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Ingeniería del Software (30222) · Grado en Ingeniería Informática · EUPT</div>
+    <h1>Material interactivo</h1>
+    <p class="lead">Ejercicios autocorregibles para practicar <strong>con método</strong> lo que luego aplicas en el proyecto: escribir requisitos, modelar en UML, diseñar con criterio y diseñar pruebas. Cada respuesta se corrige al momento y explica el porqué.</p>
+  </header>
+
+  <section class="tema" aria-labelledby="t2">
+    <div class="tema-h"><div class="n">Tema 2</div><h2 id="t2">Determinación de requisitos</h2></div>
+    <div class="cards">
+      <a class="res" href="t2-clasificador-requisitos.html"><h3>Clasificador de requisitos</h3><p>Distingue funcionales, no funcionales y del dominio, y convierte requisitos vagos en verificables.</p><div class="tags"><span>Tipos de requisito</span><span>Verificabilidad</span></div></a>
+    </div>
+  </section>
+
+  <section class="tema" aria-labelledby="t3">
+    <div class="tema-h"><div class="n">Tema 3</div><h2 id="t3">Análisis: modelado de objetos y dinámico</h2></div>
+    <div class="cards">
+      <a class="res" href="t3-relaciones-uml.html"><h3>Relaciones UML</h3><p>Asociación, agregación, composición, herencia, realización, «include» y «extend»: cuál toca en cada caso.</p><div class="tags"><span>Clases</span><span>Casos de uso</span></div></a>
+      <a class="res" href="t3-constructor-clases.html"><h3>Constructor de diagramas de clases</h3><p>Del enunciado al diagrama: técnica de los sustantivos, relaciones y multiplicidades.</p><div class="tags"><span>Modelo de dominio</span><span>Multiplicidad</span></div></a>
+      <a class="res" href="t3-taller-estados.html"><h3>Taller de diagramas de estados</h3><p>Ejecuta una máquina de estados con eventos y guardas, y caza los errores de un diagrama mal hecho.</p><div class="tags"><span>Estados</span><span>Eventos y guardas</span></div></a>
+    </div>
+  </section>
+
+  <section class="tema" aria-labelledby="t4">
+    <div class="tema-h"><div class="n">Tema 4</div><h2 id="t4">Diseño de sistemas y de objetos</h2></div>
+    <div class="cards">
+      <a class="res" href="t4-principios-patrones.html"><h3>Principios y patrones de diseño</h3><p>Qué principio se incumple, qué patrón lo resuelve (si alguno) y por qué un cuadrado no siempre es un rectángulo.</p><div class="tags"><span>SOLID</span><span>Observer · Strategy · State</span></div></a>
+    </div>
+  </section>
+
+  <section class="tema" aria-labelledby="t5">
+    <div class="tema-h"><div class="n">Tema 5</div><h2 id="t5">Prueba del producto software</h2></div>
+    <div class="cards">
+      <a class="res" href="t5-laboratorio-pruebas.html"><h3>Laboratorio de pruebas</h3><p>Particiones de equivalencia y valores límite, complejidad ciclomática y tablas de decisión.</p><div class="tags"><span>Caja negra</span><span>Caja blanca</span></div></a>
+    </div>
+  </section>
+
+  <section class="tema" aria-labelledby="pr">
+    <div class="tema-h"><div class="n">Proyecto</div><h2 id="pr">Los planos del sistema</h2></div>
+    <div class="cards">
+      <a class="res" href="proyecto-autorrevision.html"><h3>Autorrevisión del dossier</h3><p>Antes de entregar: ¿podría otra persona implementar tu sistema solo con tus planos?</p><div class="tags"><span>Banda de alcance</span><span>Coherencia</span></div></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="uso" style="display:flex;flex-direction:column;gap:14px">
+    <h2 id="uso">Cómo usarlo</h2>
+    <div class="how">
+      <div><h3>Primero, piensa</h3><p>Responde antes de mirar la solución. El error explicado enseña más que el acierto por suerte.</p></div>
+      <div><h3>Repite los fallos</h3><p>Al terminar, cada ejercicio te deja repetir solo lo que fallaste, en otro orden.</p></div>
+      <div><h3>Datos anónimos</h3><p>No hay cuentas ni cookies. Solo se cuenta, sin saber de quién, si cada respuesta es un acierto o un fallo, para ver qué cuesta más.</p></div>
+    </div>
+  </section>
+
+  <section id="cambios" aria-labelledby="camb" class="credits">
+    <h2 id="camb">Registro de cambios</h2>
+    <p>Este material se corrige y amplía con los avisos de quien lo usa. Cada versión queda archivada con su propio identificador.</p>
+    <table class="log">
+      <thead><tr><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Cambios</th></tr></thead>
+      <tbody>
+        <tr><td>1.0</td><td>Octubre de 2026</td><td>Primera versión publicada: siete páginas de ejercicios de los temas 2 a 5 y del proyecto.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="creditos" aria-labelledby="cred" class="credits">
+    <h2 id="cred">Créditos y cómo citar</h2>
+    <p><strong>Autor:</strong> Carlos Marín Lora, Escuela Universitaria Politécnica de Teruel, Universidad de Zaragoza. Versión 1.0, octubre de 2026.</p>
+    <p><strong>Licencia:</strong> <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 Internacional</a>. Puedes usar, adaptar y compartir este material citando la autoría, sin fines comerciales y con la misma licencia.</p>
+    <p><strong>Elaboración:</strong> el diseño didáctico, los contenidos y los criterios de corrección son del autor. El código de las páginas y parte de la redacción de los ejercicios se desarrollaron con ayuda de IA generativa (Claude, de Anthropic), bajo la dirección y con la revisión del autor.</p>
+    <p><strong>Privacidad:</strong> se registran de forma anónima las visitas y, para cada ejercicio, si la primera respuesta es un acierto o un fallo, mediante GoatCounter, sin cookies ni identificadores personales. Los datos se usan solo para mejorar la docencia y se publican agregados.</p>
+    <p><strong>Tipografía:</strong> Roboto y Roboto Mono, con licencia Apache 2.0, alojadas en este mismo sitio.</p>
+    <p><strong>Cómo citar:</strong></p>
+    <pre class="cite">Marín Lora, C. (2026). Ingeniería del Software: material interactivo
+(Versión 1.0) [Recurso educativo abierto]. Escuela Universitaria
+Politécnica de Teruel, Universidad de Zaragoza.</pre>
+    <!-- Tras la primera versión en Zenodo, añadir aquí: <p><strong>DOI:</strong> <a href="https://doi.org/10.5281/zenodo.XXXXXXX">10.5281/zenodo.XXXXXXX</a></p> y añadir el DOI al final de la cita. -->
+  </section>
+
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p></footer>
+</div>
+<script src="assets/metricas.js"></script>
+</body>
+</html>

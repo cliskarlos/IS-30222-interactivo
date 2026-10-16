@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Autorrevisión del dossier · IS 30222</title>
+<meta name="description" content="Lista de comprobación para revisar el dossier del proyecto antes de entregarlo.">
+<meta name="author" content="Carlos Marín Lora">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* Layout: lista de comprobación por fases del dossier, con un resumen arriba que se actualiza y una lista de tareas pendientes al final */
+:root{
+  --bg:#FAF9FC; --surface:#FFFFFF; --fg:#17131D; --muted:#675F72; --line:#E2DCEA;
+  --plum:#611BB8; --on-plum:#FFFFFF; --tint:#EEE8F7;
+  --ok:#1D7148; --ok-bg:#E4F3EA; --ko:#B3261E; --ko-bg:#FBE9E7; --warn:#8A5A00; --warn-bg:#FBF0D9;
+  --font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131017; --surface:#1C1822; --fg:#ECE8F2; --muted:#A49CAF; --line:#342D3E;
+  --plum:#B892F2; --on-plum:#160F20; --tint:#2A2137;
+  --ok:#7DD8A8; --ok-bg:#15301F; --ko:#F39A92; --ko-bg:#3B1B19; --warn:#F0C46A; --warn-bg:#3A2C0F; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--plum)}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.1;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+h2{font-size:19px;margin:0;text-wrap:balance}
+.intro,.muted{color:var(--muted);margin:0;max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.ph{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.ph b{font-weight:500;font-size:14px}
+.ph .n{font-variant-numeric:tabular-nums;color:var(--muted)}
+.meter{height:6px;border-radius:6px;background:var(--line);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .y{background:var(--ok)} .meter .p{background:var(--warn)} .meter .x{background:var(--ko)}
+
+.phase-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.phase-head span{font-size:13px;color:var(--muted)}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.item{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.item:first-child{border-top:0}
+.item p{margin:0;font-size:15px;flex:1 1 280px;min-width:0}
+.item p small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.tri{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
+.tri button{font:inherit;font-size:13px;padding:6px 11px;border:0;background:var(--bg);color:var(--muted);cursor:pointer}
+.tri button+button{border-left:1px solid var(--line)}
+.tri button[aria-pressed="true"][data-v="y"]{background:var(--ok-bg);color:var(--ok);font-weight:500}
+.tri button[aria-pressed="true"][data-v="p"]{background:var(--warn-bg);color:var(--warn);font-weight:500}
+.tri button[aria-pressed="true"][data-v="x"]{background:var(--ko-bg);color:var(--ko);font-weight:500}
+button:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.todo{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.todo li span{font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-right:6px}
+.todo li.x span{color:var(--ko)} .todo li.p span{color:var(--warn)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:15px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--plum);background:var(--plum);color:var(--on-plum);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum)}
+.copied{font-size:14px;color:var(--ok)}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:10px;box-sizing:border-box}
+.foot{font-size:13px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site" aria-label="Navegación"><a href="index.html">← Ingeniería del Software · Material interactivo</a><span>EUPT · Universidad de Zaragoza</span></nav>
+  <header>
+    <div class="eyebrow">IS 30222 · Proyecto (P2) · Sesión 11</div>
+    <h1>Autorrevisión del dossier</h1>
+    <p class="intro">La pregunta de fondo: ¿podría otra persona implementar tu sistema solo con tus planos, sin preguntarte nada? Repasa cada punto con el dossier abierto y sé honesto. Al final tendrás la lista de lo que te queda por arreglar antes de la entrega final.</p>
+  </header>
+
+  <section class="card" aria-label="Resumen">
+    <div class="sum" id="sum"></div>
+    <p class="muted" id="sumtxt"></p>
+  </section>
+
+  <div id="phases" style="display:flex;flex-direction:column;gap:16px"></div>
+
+  <section class="card">
+    <h2>Lo que te queda por hacer</h2>
+    <ol class="todo" id="todo"></ol>
+    <div class="row">
+      <button type="button" class="btn" id="copy">Copiar la lista</button>
+      <button type="button" class="btn ghost" id="clear">Empezar de cero</button>
+      <span class="copied" id="copied" hidden>Copiada.</span>
+    </div>
+    <textarea id="copytxt" readonly hidden aria-label="Lista para copiar"></textarea>
+  </section>
+
+  <p class="foot">Ingeniería del Software · Grado en Ingeniería Informática · EUPT. Tus respuestas se recuerdan solo en este navegador; no se envían a nadie.</p>
+  <footer class="site"><p>© 2026 Carlos Marín Lora. Material publicado con licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p><p><a href="index.html#creditos">Créditos y cómo citar</a></p></footer>
+</div>
+
+<script src="assets/metricas.js"></script>
+<script>
+const PH=[
+ {k:'e1',t:'E1 · Requisitos',items:[
+  ['Tengo entre 15 y 30 requisitos funcionales, numerados.','Cada uno con un identificador que pueda citar desde otras partes del dossier.'],
+  ['Mis requisitos no funcionales son verificables.','Sin "rápido", "fácil" o "seguro" a secas: cada uno dice qué se mide y cuánto.'],
+  ['Tengo entre 8 y 15 casos de uso, y los principales están escritos en narrativa completa.','Actor, precondiciones, flujo principal, flujos alternativos y postcondiciones.'],
+  ['Los requisitos están priorizados (MoSCoW).',''],
+  ['Ningún requisito describe una solución técnica en vez de una necesidad.','"Se usará una base de datos X" no es un requisito del usuario.']]},
+ {k:'e2',t:'E2 · Análisis',items:[
+  ['El diagrama de casos de uso tiene límite del sistema y solo usa «include» y «extend» donde existen de verdad.',''],
+  ['El modelo de dominio tiene entre 6 y 12 clases, con multiplicidad en todas las asociaciones.',''],
+  ['Solo hay rombos (agregación o composición) donde hay una relación todo-parte real.','La asociación es la opción por defecto.'],
+  ['Tengo al menos un diagrama de secuencia y uno de estados sobre casos no triviales.',''],
+  ['Las vistas son coherentes entre sí.','Cada objeto de un diagrama de secuencia existe como clase; los estados del diagrama de estados encajan con la clase a la que pertenecen.']]},
+ {k:'e3',t:'E3 · Diseño',items:[
+  ['He elegido un estilo arquitectónico y explico por qué.','Y qué alternativa descarté.'],
+  ['Tengo las vistas de paquetes, componentes y despliegue.',''],
+  ['Las clases de diseño tienen visibilidad, tipos y operaciones.','No es el mismo diagrama que el de análisis con más detalle pintado encima.'],
+  ['He aplicado al menos un patrón y explico qué problema resuelve.','Si lo quito, ¿qué empeora?'],
+  ['Las decisiones importantes están en la bitácora, con sus alternativas.','']]},
+ {k:'e4',t:'E4 · Pruebas y guía de implementación',items:[
+  ['Tengo casos de caja negra (particiones y valores límite) sobre funciones con lógica de mi sistema.','No sobre un CRUD.'],
+  ['Aplico al menos una técnica de caja blanca.','Cobertura de ramas, caminos básicos o complejidad ciclomática.'],
+  ['Las operaciones clave tienen contrato (precondiciones y postcondiciones).',''],
+  ['Las operaciones con lógica tienen pseudocódigo que un programador podría seguir.',''],
+  ['Tengo una matriz de trazabilidad: requisito → diseño → prueba.','Ningún requisito funcional se queda sin prueba.']]},
+ {k:'int',t:'Cierre e integración',items:[
+  ['Los nombres son los mismos en todo el dossier.','La misma clase no se llama de tres formas distintas en tres diagramas.'],
+  ['He incorporado el feedback de cada fase.',''],
+  ['Alguien ha leído una parte de mi dossier y ha entendido qué construir sin preguntarme.','Un compañero, por ejemplo.'],
+  ['El repositorio tiene commits fechados a lo largo del semestre.',''],
+  ['Sé explicar con mis palabras cada decisión del dossier.','Si algo lo escribió una herramienta, lo he entendido y lo he hecho mío.']]}
+];
+const KEY='is30222-autorrevision-v1';
+let st={};
+try{ st=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ st={}; }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
+const LBL={y:'Sí',p:'A medias',x:'No'};
+
+function renderPhases(){
+  document.getElementById('phases').innerHTML=PH.map(ph=>`<section class="card" id="ph-${ph.k}">
+    <div class="phase-head"><h2>${ph.t}</h2><span id="cnt-${ph.k}"></span></div>
+    <ul class="items">${ph.items.map((it,i)=>{ const id=ph.k+'-'+i, v=st[id];
+      return `<li class="item"><p>${it[0]}${it[1]?`<small>${it[1]}</small>`:''}</p>
+        <div class="tri" role="group" aria-label="Respuesta">${['y','p','x'].map(o=>`<button type="button" id="b-${id}-${o}" data-id="${id}" data-v="${o}" aria-pressed="${v===o}">${LBL[o]}</button>`).join('')}</div></li>`; }).join('')}</ul></section>`).join('');
+  document.querySelectorAll('.tri button').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.id; st[id]= st[id]===b.dataset.v?undefined:b.dataset.v; if(st[id]===undefined) delete st[id];
+    save(); b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',st[id]===x.dataset.v)); update();
+  }));
+}
+function update(){
+  let tot=0, yes=0, ans=0; const todo=[];
+  document.getElementById('sum').innerHTML=PH.map(ph=>{
+    let y=0,p=0,x=0; ph.items.forEach((it,i)=>{ const v=st[ph.k+'-'+i]; if(v==='y')y++; if(v==='p'){p++;todo.push(['p',ph.t,it[0]]);} if(v==='x'){x++;todo.push(['x',ph.t,it[0]]);} });
+    const n=ph.items.length; tot+=n; yes+=y; ans+=y+p+x;
+    document.getElementById('cnt-'+ph.k).textContent=`${y} de ${n} cumplidos`;
+    return `<div class="ph"><b>${ph.t.split(' · ')[0]}</b><div class="meter" aria-hidden="true"><i class="y" style="width:${100*y/n}%"></i><i class="p" style="width:${100*p/n}%"></i><i class="x" style="width:${100*x/n}%"></i></div><span class="n">${y}/${n}</span></div>`;
+  }).join('');
+  document.getElementById('sumtxt').textContent= ans===0 ? `Hay ${tot} puntos. Marca cada uno como Sí, A medias o No.`
+    : yes===tot ? 'Todo cumplido. Haz una última lectura de principio a fin pensando en quien tiene que implementarlo.'
+    : `${yes} de ${tot} puntos cumplidos${ans<tot?`, ${tot-ans} sin revisar`:''}.`;
+  todo.sort((a,b)=>a[0]===b[0]?0:a[0]==='x'?-1:1);
+  document.getElementById('todo').innerHTML= todo.length ? todo.map(t=>`<li class="${t[0]}"><span>${t[0]==='x'?'Falta':'Mejorar'}</span>${t[2]} <span style="color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">(${t[1].split(' · ')[0]})</span></li>`).join('')
+    : '<li style="list-style:none;margin-left:-20px;color:var(--muted)">Nada pendiente por ahora. Los puntos que marques como No o A medias aparecerán aquí.</li>';
+  window._todoTxt=todo.map(t=>`- [${t[0]==='x'?'Falta':'Mejorar'}] ${t[2]} (${t[1].split(' · ')[0]})`).join('\n');
+}
+document.getElementById('copy').addEventListener('click',()=>{
+  const txt=window._todoTxt||''; const ta=document.getElementById('copytxt');
+  const fallback=()=>{ ta.value=txt; ta.hidden=false; ta.focus(); ta.select(); };
+  try{ navigator.clipboard.writeText(txt).then(()=>{ const c=document.getElementById('copied'); c.hidden=false; setTimeout(()=>c.hidden=true,2000); },fallback); }catch(e){ fallback(); }
+});
+let armed=false;
+document.getElementById('clear').addEventListener('click',e=>{
+  const b=e.currentTarget;
+  if(!armed){ armed=true; b.textContent='Pulsa otra vez para borrar todo'; setTimeout(()=>{armed=false;b.textContent='Empezar de cero';},4000); return; }
+  armed=false; b.textContent='Empezar de cero';
+  st={}; save(); renderPhases(); update(); document.getElementById('copytxt').hidden=true; });
+renderPhases(); update();
+</script>
+</body>
+</html>
