@@ -1,0 +1,23 @@
+{
+  "title": "Ingeniería del Software: material interactivo",
+  "upload_type": "lesson",
+  "description": "<p>Recurso educativo abierto con ejercicios interactivos y autocorregibles para la asignatura Ingeniería del Software (30222) del Grado en Ingeniería Informática de la Escuela Universitaria Politécnica de Teruel (Universidad de Zaragoza).</p><p>Incluye: clasificador de requisitos y reescritura de requisitos verificables (Tema 2); entrenador de relaciones UML, constructor guiado de diagramas de clases y taller de diagramas de estados (Tema 3); principios SOLID, patrones Observer, Strategy y State y demostración del principio de Liskov (Tema 4); laboratorio de pruebas con particiones de equivalencia, valores límite, complejidad ciclomática y tablas de decisión (Tema 5); y una lista de autorrevisión del proyecto.</p><p>Web estática. Registro opcional, anónimo y agregado de aciertos y fallos (GoatCounter), sin cookies ni identificadores personales.</p>",
+  "creators": [
+    {
+      "name": "Marín Lora, Carlos",
+      "affiliation": "Escuela Universitaria Politécnica de Teruel, Universidad de Zaragoza"
+    }
+  ],
+  "license": "cc-by-nc-sa-4.0",
+  "access_right": "open",
+  "language": "spa",
+  "version": "1.0.0",
+  "keywords": [
+    "ingeniería del software",
+    "recurso educativo abierto",
+    "UML",
+    "requisitos",
+    "patrones de diseño",
+    "pruebas de software"
+  ]
+}
